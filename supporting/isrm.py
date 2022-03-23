@@ -37,7 +37,7 @@ class isrm:
         self.load_file = load_file
         self.verbose = verbose
         verboseprint = print if self.verbose else lambda *a, **k:None # for logging
-        verboseprint('Creating a new emissions object from {}'.format(self.file_path))
+        verboseprint('\nCreating a new ISRM object from {}'.format(self.file_path))
         
         # If the files do not exist, quit before opening
         if not self.valid_file:
@@ -60,6 +60,13 @@ class isrm:
             self.crs = self.geodata.crs
             self.geometry = self.geodata['geometry']
             self.ISRM_ID = self.geodata['ISRM_ID']
+    
+    def __str__(self):
+        return 'ISRM object created from '+self.file_path
+
+    def __repr__(self):
+        return '< ISRM object created from '+self.file_path+'>'
+
     
     def check_path(self):
         ''' Checks if file exists at the path specified '''
@@ -103,6 +110,21 @@ class isrm:
         isrm_gdf.columns = ['ISRM_ID', 'geometry']
         
         return isrm_gdf
+    
+    def get_pollutant_layer(self, pol_name):
+        ''' Returns pollutant layer '''
+        # Define a pollutant dictionary for convenience
+        pollutant_dict = {'PM25':self.PM25,
+                         'NH3':self.NH3,
+                         'VOC':self.VOC,
+                         'NOX':self.NOX,
+                         'SOX':self.SOX}
+        
+        # Confirm pol_name is valid
+        assert pol_name in pollutant_dict.keys()
+        
+        # Return pollutant layer
+        return pollutant_dict[pol_name]
     
     def map_isrm(self):
         ''' Creates map of ISRM grid  '''

@@ -42,7 +42,7 @@ class emissions:
         self.details_to_keep = details_to_keep
         self.verbose = verbose
         verboseprint = print if self.verbose else lambda *a, **k:None # for logging
-        verboseprint('Creating a new emissions object from {}'.format(self.file_path))
+        verboseprint('\nCreating a new emissions object from {}'.format(self.file_path))
         
         # If the file does not exist, quit before opening
         if not self.valid_file:
@@ -83,7 +83,7 @@ class emissions:
         return 'Emissions object created from '+self.file_path
 
     def __repr__(self):
-        return '< Emissions object created from '+self.file_path
+        return '< Emissions object created from '+self.file_path+'>'
 
 
     def get_file_path(self):
@@ -299,3 +299,18 @@ class emissions:
         ax.set_title(pollutant_name+' Emissions')
         fig.tight_layout()
         return fig
+    
+    def get_pollutant_layer(self, pol_name):
+        ''' Returns pollutant layer '''
+        # Define a pollutant dictionary for convenience
+        pollutant_dict = {'PM25':self.PM25,
+                         'NH3':self.NH3,
+                         'VOC':self.VOC,
+                         'NOX':self.NOX,
+                         'SOX':self.SOX}
+        
+        # Confirm pol_name is valid
+        assert pol_name in pollutant_dict.keys()
+        
+        # Return pollutant layer
+        return pollutant_dict[pol_name]
