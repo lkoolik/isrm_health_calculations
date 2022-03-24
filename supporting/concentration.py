@@ -197,7 +197,7 @@ class concentration:
         self.total_conc.plot(column='TOTAL_CONC_UG/M3',
                               figsize=(20,10),
                               legend=True,
-                              legend_kwds={'label':r'Concentration of PM$_{2.5}$ ($\mu$g/s)'},
+                              legend_kwds={'label':r'Concentration of PM$_{2.5}$ ($\mu$g/m$^3$)'},
                               ax = ax)
         ax.set_title(r'PM$_{2.5}$ Concentration from Emissions')
         fig.tight_layout()
