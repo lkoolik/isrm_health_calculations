@@ -4,7 +4,7 @@
 Emissions Data Object
 
 @author: libbykoolik
-last modified: 2022-03-22
+last modified: 2022-03-28
 """
 
 # Import Libraries
@@ -30,7 +30,7 @@ class emissions:
         - verbose: enable for more detailed outputs
         
     '''
-    def __init__(self, file_path, units='ug/s', name='', details_to_keep=[], load_file=True, verbose=False):
+    def __init__(self, file_path, units='ug/s', name='', details_to_keep=[], filter_dict={}, load_file=True, verbose=False):
         ''' Initializes the emissions object'''        
         # Initialize path and check that it is valid
         self.file_path = file_path
@@ -40,6 +40,8 @@ class emissions:
         # Define additional Meta Variables
         self.emissions_name = self.get_name(name)
         self.details_to_keep = details_to_keep
+        self.filter_dict = filter_dict
+        self.filter = bool(self.filter_dict) # returns False if empty, True if not empty
         self.verbose = verbose
         verboseprint = print if self.verbose else lambda *a, **k:None # for logging
         verboseprint('\nCreating a new emissions object from {}'.format(self.file_path))
@@ -227,11 +229,24 @@ class emissions:
         # Otherwise, return the first choice
         else:
             return first_choice
+        
+    def filter_emissions(self, emissions):
+        ''' Filters emissions based on inputted dictionary filter_dict '''
+        filter_dict = self.filter_dict
+        
+        for key in filter_dict.keys():
+            emissions = emissions.loc[emissions[key].isin(filter_dict[key]),:]
+        
+        return emissions
     
     def clean_up(self, details_to_keep, func=np.sum):
         ''' Simplifies emissions file by reducing unnecessary details '''
         # Start by deep-copying to avoid any accidental overwriting
         emissions_data_tmp = self.emissions_data.copy(deep=True)
+        
+        # If filter is enabled, filter emissions
+        if self.filter:
+            emissions_data_tmp = self.filter_emissions(emissions_data_tmp)
         
         # Use pandas processing to perform a groupby
         groupby_features = ['I_CELL', 'J_CELL']+details_to_keep
