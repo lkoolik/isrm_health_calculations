@@ -190,15 +190,74 @@ class concentration:
                                     
         return pol_gdf
     
-    def visualize_concentrations(self):
+    def visualize_concentrations(self, var, output_dir, export=False):
         ''' Creates map of concentrations using simple chloropleth '''
         # Note to build this out further at some point in the future, works for now
+        # Read in CA boundary
+        ca_shp = gpd.read_file('/Users/libbykoolik/Documents/Research/OEHHA Project/scripts/isrm_health_calculations/data/CA_State_TIGER2016.shp')
+        ca_prj = ca_shp.to_crs(self.crs)
+        
+        # Create necessary labels and strings
+        if var[0:10] == 'CONC_UG/M3':
+            pol = 'Emissions of '+var.split('_')[-1]
+        else:
+            pol = 'All Emissions'
+        t_str = 'PM2.5 Concentrations from {}'.format(pol)
+        fname = self.name + '_' + pol + '_concentrations.png'
+        fname = str.lower(fname)
+        fpath = os.path.join(output_dir, fname)
+        
+        # Grab relevant layer
+        c_to_plot = self.detailed_conc[['ISRM_ID','geometry',var]].copy()
+        
         fig, ax = plt.subplots(1,1)
-        self.total_conc.plot(column='TOTAL_CONC_UG/M3',
+        c_to_plot.plot(column=var,
                               figsize=(20,10),
                               legend=True,
                               legend_kwds={'label':r'Concentration of PM$_{2.5}$ ($\mu$g/m$^3$)'},
                               ax = ax)
-        ax.set_title(r'PM$_{2.5}$ Concentration from Emissions')
+        
+        ca_prj.plot(edgecolor='black', facecolor='none', ax=ax)
+        
+        ax.set_title(t_str)
+        ax.xaxis.set_visible(False)
+        ax.yaxis.set_visible(False)
         fig.tight_layout()
-        return fig
+        
+        if export: 
+            fig.savefig(fpath, dpi=200)
+        return
+
+    def export_concentrations(self, output_dir, detailed=False,):
+        ''' Exports concentration as a shapefile (detailed or total) '''
+        
+        # If detailed flag is True, export detailed shapefile
+        if detailed:
+            fname = self.name + '_detailed_concentration.shp' # File Name
+            fpath = os.path.join(output_dir, fname)
+            
+            # Make a copy and change column names to meet shapefile requirements
+            gdf_export = self.detailed_conc.copy()
+            gdf_export.columns = ['ISRM_ID', 'geometry', 'PM25_UG_S', 'NH3_UG_S',
+                                  'VOC_UG_S', 'NOX_UG_S', 'SOX_UG_S', 'fPM_UG_M3', 
+                                  'fNH3_UG_M3', 'fVOC_UG_M3', 'fNOX_UG_M3',
+                                  'fSOX_UG_M3', 'PM25_UG_M3']
+            
+            # Export
+            gdf_export.to_file(fpath)
+            print('- Detailed concentrations output as {}'.format(fname))
+            
+        # If detailed flag is False, export only total concentration shapefile
+        else:
+            fname = str.lower(self.name + '_total_concentration.shp') # File Name
+            fpath = os.path.join(output_dir, fname)
+            
+            # Make a copy and change column names to meet shapefile requirements
+            gdf_export = self.total_conc.copy()
+            gdf_export.columns = ['ISRM_ID', 'geometry', 'PM25_UG_M3']
+            
+            # Export
+            gdf_export.to_file(fpath)
+            print('- Total concentratitons output as {}'.format(fname))
+        
+        return

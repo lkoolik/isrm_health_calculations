@@ -13,6 +13,8 @@ from isrm import isrm
 from emissions import emissions
 from concentration import concentration
 import argparse
+import os
+import datetime
 
 #%% Use argparse to parse command line arguments
 # Initialize the parser object
@@ -40,6 +42,25 @@ name = args.scenarioname if args.scenarioname else ''
 isrm_fp = './data/ca_isrm.ncf'
 isrm_gfp = './data/InMAP_gridCells.shp'
 
+def create_output_dir():
+    ''' Creates the output directory for files generated '''
+    # Grab current working directory and the 'outputs' sub folder
+    parent = os.getcwd()
+    sub = 'outputs'
+    
+    # Output subdirectory will be named with current datetime
+    now = datetime.datetime.now()
+    outdir = 'out_'+name+now.strftime("%Y%m%d_%H%M")
+    
+    # Make the directory if it does not already exist
+    os.mkdir(os.path.join(parent, sub, outdir))
+    output_dir = os.path.join(parent,sub,outdir)
+    
+    # Print a statement to tell user where to look for files
+    print("\n<< Output files created will be saved in the following directory: "+output_dir+">>")
+    
+    return output_dir
+
 #%% Run Program
 if __name__ == "__main__":
 
@@ -55,10 +76,13 @@ if __name__ == "__main__":
             print("\n<< Correct error messages above before running the program. >>\n")
         quit()
     else: # for now, run concentration calculations since no health built
+        output_dir = create_output_dir()
         emis = emissions(emissions_path, units=units, name=name, load_file=True, verbose=verbose)
         isrmgrid = isrm(isrm_fp, isrm_gfp, load_file=True, verbose=verbose)
         conc = concentration(emis, isrmgrid, run_calcs=True, verbose=verbose)
         
         print("\n<< Concentrations estimated >>\n")
+        conc.visualize_concentrations('TOTAL_CONC_UG/M3',output_dir, export=True)
+        conc.export_concentrations(output_dir, detailed=False)
         quit()
         
