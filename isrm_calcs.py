@@ -14,6 +14,7 @@ from isrm import isrm
 from emissions import emissions
 from concentration import concentration
 from population import population
+from control_file import control_file
 sys.path.insert(0,'./scripts')
 from environmental_justice_calcs import *
 import argparse
@@ -25,28 +26,26 @@ import datetime
 parser = argparse.ArgumentParser(description="Runs the ISRM-based tool for estimating PM2.5 concentrations and associated health impacts.")
 
 # Add necessary arguments
-parser.add_argument("-c", "--checkinputs", help="use this run option if you want to check files but not run",
-                    action='store_true')
-parser.add_argument("-e", "--emissions", help="emissions input file path", type=str)
-parser.add_argument("-u", "--units", help="emissions units")
-parser.add_argument("-sn", "--scenarioname", help="name of scenario being modeled", type=str)
-parser.add_argument("-v", "--verbose", help="include this tag to run the code in verbose mode", action='store_true')
-parser.add_argument("-p", "--population", help="population input file path", type=str)
+parser.add_argument("-i", "--inputs", help="control file path", type=str)
 
 # Parse all arguments
 args = parser.parse_args()
 
-# Separate arguments into useful variables
-check = args.checkinputs
-verbose = args.verbose
-if args.emissions: emissions_path = args.emissions
-if args.population: population_path = args.population
-units = args.units if args.units else 'ug/s'
-name = args.scenarioname if args.scenarioname else ''
+# Read control file and create useful variables
+cf = control_file(args.inputs)
+if not cf.ready:
+    sys.exit()
+else:
+    name = cf.run_name
+    emissions_path = cf.emissions_path
+    units = cf.emissions_units
+    check = cf.check
+    verbose = cf.verbose
 
-# Define ISRM Variables
+# Define ISRM Variables and population variables
 isrm_fp = './data/ca_isrm.ncf'
 isrm_gfp = './data/InMAP_gridCells.shp'
+population_path = './data/ca2000.feather'
 
 def create_output_dir():
     ''' Creates the output directory for files generated '''
