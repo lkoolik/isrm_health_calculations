@@ -5,6 +5,10 @@ A repository of scripts used for converting emissions to concentrations and heal
 
 Last modified June 7, 2022
 
+## Table of Contents
+* Purpose and Goals ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#purpose-and-goals))
+* Methodology ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#methodology))
+
 ----
 
 ## Purpose and Goals
@@ -18,6 +22,12 @@ TBD
 ----
 
 ## Code Details ##
+Below is a brief table of contents for the Code Details section of the Readme.
+* Requirements ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#requirements))
+* Supporting Code ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#supporting-code))
+   * `control_file.py` ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#control_filepy))
+   * `emissions.py` ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#emissionspy))
+
 ### Requirements
 
 ### Supporting Code
