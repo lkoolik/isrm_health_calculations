@@ -3,7 +3,9 @@ A repository of scripts used for converting emissions to concentrations and heal
 
 *Libby Koolik, UC Berkeley*
 
-Last modified March 23, 2022
+Last modified June 7, 2022
+
+----
 
 ## Purpose and Goals
 The ultimate goal of this repository is to create a pipeline for estimating disparities in health impacts associated with incremental changes in emissions. Annual average PM<sub>2.5</sub> concentrations are estimated using the [InMAP Source Receptor Matrix](https://www.pnas.org/doi/full/10.1073/pnas.1816102116).
@@ -13,27 +15,51 @@ The ultimate goal of this repository is to create a pipeline for estimating disp
 ## Methodology ##
 TBD
 
+----
+
 ## Code Details ##
 ### Requirements
 
 ### Supporting Code
 To streamline calculations and increase functionality of the code, python `classes` were created. These class definitions are saved in the `supporting` folder of the repository. The following sections outline how each of these classes work.
 
+#### `control_file.py`
+The `control_file` object is used to check and read the control file for a run:
+
+*Inputs*
+* `file_path`: the file path of the control file
+
+*Attributes*
+* `valid_file`: a Boolean indicating whether or not the control file path is valid
+* `keywords`: a hardcoded list of the keywords that should be present in the control file
+* `blanks_okay`: a hardcoded list of whether each keyword can be blank (based on order of `keywords`)
+* `valid_structure`, `no_incorrect_blanks`: Boolean keywords based on internal checks of the control file format
+* `run_name`: a string representing the run name preferred by the user
+* `emissions_path`: a string representing the path to the emissions input file
+* `emissions_units`: a string representing the units of the emissions data
+* `check`: a Boolean indicating whether the program should run, or if it should just check the inputs (useful for debugging)
+* `verbose`: a Boolean indicating whether the user wants to run in verbose mode
+
+*Simple Functions*
+* `get_file_path`: returns the file path
+
 #### `emissions.py`
 The `emissions` object is primarily built off of `geopandas`. It has the following attributes:
 
-*Metadata Attributes*
+*Inputs*
 * `file_path`: the file path of the raw emissions data
-* `file_type`: the type of file being used to provide raw emissions data (for now, only `.shp` is allowed)
-* `emissions_name`: a plain English name tied to the emissions data, either provided or automatically generated from the filepath
-* `details_to_keep`: any additional details to be preserved throughout the processing (e.g., sector, fuel type). This is not fully built out yet.
-* `verbose`: a Boolean indicating whether or not detailed logging statements should be printed
 * `units`: units associated with the emissions (e.g., μg/s)
+* `name`: a plain English name tied to the emissions data, either provided or automatically generated from the filepath
+* `details_to_keep`: any additional details to be preserved throughout the processing (e.g., sector, fuel type) (not fully built out yet)
+* `filter_dict`: filters the emissions inputs based on inputted dictionary (not fully built out yet)
+* `load_file`: a Boolean indicating whether or not the file should be loaded (for debugging)
+* `verbose`: a Boolean indicating whether or not detailed logging statements should be printed
+
+*Emissions Attributes*
 * `valid_file`: a Boolean indicating whether or not the file provided is valid
 * `valid_units`: a Boolean indicating whether or not emissions units are compatible with the program
 * `valid_emissions`: a Boolean indicating whether or not emissions passed required tests
-
-*Emissions Attributes*
+* `file_type`: the type of file being used to provide raw emissions data (for now, only `.shp` is allowed)
 * `geometry`: geospatial information associated with the emissions input
 * `crs`: the inherent coordinate reference system associated with the emissions input
 * `emissions_data`: complete, detailed emissions data from the source
@@ -52,5 +78,3 @@ The `emissions` object is primarily built off of `geopandas`. It has the followi
 * `check_units`: checks that the provided units are valid against the `get_unit_conversions` dictionaries
 * `convert_units`: converts units from provided units to μg/s using the unit dictionaries built-in
 * `visualize_emissions`: creates a simple map of emissions for a provided pollutant
-
-asdfasdf
