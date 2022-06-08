@@ -70,9 +70,15 @@ class emissions:
             self.emissions_data.columns = map(str.upper, self.emissions_data.columns)
             self.valid_emissions = self.check_emissions()
             
+            # If the emissions are valid, continue
             if self.valid_emissions:
+                # Update to convert everything to polygons
+                self.check_geo_types()
+            
+                # Print statements
                 verboseprint('- Emissions formatting has been checked and confirmed to be valid.')
                 verboseprint('- Beginning data cleaning and processing.')
+                
                 # Should add a statement about details_to_keep and the aggfunc
                 self.emissions_data_clean = self.clean_up(self.details_to_keep)
                 self.PM25 = self.split_pollutants(self.emissions_data_clean, 'PM25', self.details_to_keep)
@@ -238,6 +244,42 @@ class emissions:
             emissions = emissions.loc[emissions[key].isin(filter_dict[key]),:]
         
         return emissions
+    
+    def check_geo_types(self):
+        ''' Checks for different geometry types and updates to polygons if needed '''
+        # Check for non-polygon types and filter emissions into two sections
+        polygon_filter = self.geometry.geom_type.str.upper().str.contains('POLYGON') # captures polygons and multi-polygons
+        polygons = self.geometry[polygon_filter]
+        
+        # Speed this up by skipping if no calculations need to be done
+        if polygons.shape[0] == self.geometry.shape[0]:
+            return
+        
+        else: # Will need to do buffering on all other objects
+            # Get just the non-polygon rows    
+            if self.verbose:
+                print('<< {} non-polygon emissions sources identified. Adding a 0.005 m buffer to create polygons.'.format(self.geometry.shape[0]-polygons.shape[0]))
+            non_polygons = self.geometry[~polygon_filter]
+            new_polygons = self.buffer_emis(non_polygons, 0.005)
+        
+            # Update self.geometry to include these new ones
+            self.geometry[~polygon_filter] = new_polygons
+            
+            return 
+    
+    def buffer_emis(self, emis_non_poly, dist):
+        ''' Adds a buffer (in m) to the non-polygon type geometries in order to create polygons '''
+        # First, need to project to coordinates in meters
+        crs_old = self.crs
+        non_poly_prj = emis_non_poly.copy().to_crs('epsg:3310') # California NAD83 Albers (m)
+        
+        # Create buffer of radius dist
+        non_poly_prj['geometry'] = non_poly_prj.buffer(dist)
+        
+        # Re-project back to original coordinates
+        emis_new_poly = non_poly_prj.to_crs(crs_old)
+        
+        return emis_new_poly
     
     def clean_up(self, details_to_keep, func=np.sum):
         ''' Simplifies emissions file by reducing unnecessary details '''

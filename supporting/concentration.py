@@ -83,7 +83,6 @@ class concentration:
     def __repr__(self):
         return '< Emissions object created from '+self.name + ' and the ISRM grid.>'
 
-    
     def allocate_emissions(self, emis_layer, isrm_geography):    
         ''' Reallocates the emissions into the ISRM geography using a spatial intersect '''
         
