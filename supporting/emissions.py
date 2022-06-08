@@ -70,11 +70,15 @@ class emissions:
             self.emissions_data.columns = map(str.upper, self.emissions_data.columns)
             self.valid_emissions = self.check_emissions()
             
-            self.check_geo_types()
-            
+            # If the emissions are valid, continue
             if self.valid_emissions:
+                # Update to convert everything to polygons
+                self.check_geo_types()
+            
+                # Print statements
                 verboseprint('- Emissions formatting has been checked and confirmed to be valid.')
                 verboseprint('- Beginning data cleaning and processing.')
+                
                 # Should add a statement about details_to_keep and the aggfunc
                 self.emissions_data_clean = self.clean_up(self.details_to_keep)
                 self.PM25 = self.split_pollutants(self.emissions_data_clean, 'PM25', self.details_to_keep)
