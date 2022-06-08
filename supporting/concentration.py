@@ -83,7 +83,23 @@ class concentration:
     def __repr__(self):
         return '< Emissions object created from '+self.name + ' and the ISRM grid.>'
 
-    
+    # def buffer_points(self, dist=0.005):
+    #     ''' Adds a buffer (in m) to the point type geometries in order to create polygons '''
+    #     # First, need to project to coordinates in meters
+    #     crs_old = self.emissions.crs
+    #     emissions_prj = self.emissions.geometry.copy().to_crs('3310') # California NAD83 Albers (m)
+        
+    #     # Create buffer of radius dist
+    #     emissions_prj['geometry'] = emissions_prj.buffer(dist)
+        
+    #     # Re-project back to original coordinates
+    #     emissions_new_geo = emissions_prj.to_crs(crs_old)
+        
+    #     # Overwrite point data
+        
+        
+    #     return
+
     def allocate_emissions(self, emis_layer, isrm_geography):    
         ''' Reallocates the emissions into the ISRM geography using a spatial intersect '''
         
