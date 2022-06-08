@@ -88,3 +88,4 @@ The `emissions` object is primarily built off of `geopandas`. It has the followi
 * `check_units`: checks that the provided units are valid against the `get_unit_conversions` dictionaries
 * `convert_units`: converts units from provided units to μg/s using the unit dictionaries built-in
 * `visualize_emissions`: creates a simple map of emissions for a provided pollutant
+* `buffer_emis`: adds a buffer of distance `dist` to the emissions geography
