@@ -8,6 +8,8 @@ last modified: 2022-03-23
 """
 
 # Import Libraries
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 import pandas as pd
 import geopandas as gpd
 import numpy as np
