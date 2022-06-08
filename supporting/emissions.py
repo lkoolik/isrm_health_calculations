@@ -4,7 +4,7 @@
 Emissions Data Object
 
 @author: libbykoolik
-last modified: 2022-03-28
+last modified: 2022-06-08
 """
 
 # Import Libraries
