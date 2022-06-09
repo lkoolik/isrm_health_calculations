@@ -23,7 +23,10 @@ class isrm:
     Defines a new object for storing and manipulating ISRM data.
     
     INPUTS:
-        - tbd
+        - file_path: file path to the ISRM grid NetCDF file (underlying data)
+        - geo_file_path: file path to the shapefile of geographic information
+        - load_file: set to True to import emissions, otherwise will just run checks
+        - verbose: enable for more detailed outputs 
         
     '''
     def __init__(self, file_path, geo_file_path, load_file=True, verbose=False):
@@ -84,7 +87,7 @@ class isrm:
     def load_isrm(self):
         ''' Loads ISRM File '''
         # Open the NetCDF file 
-        isrm_nf = nf(self.file_path, mode='r', mmap=None)
+        isrm_nf = nf(self.file_path, mode='r', mmap=False)
         
         # Define the Pollutant Layers and Loop through to Slice into Variables
         pollutant_layers = ['PrimaryPM25', 'pNH4', 'pNO3', 'pSO4', 'SOA']
@@ -134,11 +137,3 @@ class isrm:
         ax.set_title('ISRM Grid')
         fig.tight_layout()
         return fig
-        
-        
-        
-        
-        
-        
-        
-        
