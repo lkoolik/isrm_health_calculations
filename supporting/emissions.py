@@ -65,10 +65,15 @@ class emissions:
         # If load_file is True, import the emissions data
         if load_file == True and self.valid_file:
             verboseprint('- Attempting to load the emissions data. This step may take some time.')
-            self.geometry, self.emissions_data, self.crs = self.load_emissions()
+            self.geometry, self.emissions_data, self.crs = self.load_emissions()            
             verboseprint('- Emissions successfully loaded.')
             self.emissions_data.columns = map(str.upper, self.emissions_data.columns)
+                        
+            # Check the emissions data
             self.valid_emissions = self.check_emissions()
+            
+            # Check for the 'HEIGHT_M' column; if it exists, add to details_to_keep, otherwise add HEIGHT_M = 0 column
+            self.check_height()
             
             # If the emissions are valid, continue
             if self.valid_emissions:
@@ -86,6 +91,9 @@ class emissions:
                 self.NOX = self.split_pollutants(self.emissions_data_clean, 'NOX', self.details_to_keep)
                 self.VOC = self.split_pollutants(self.emissions_data_clean, 'VOC', self.details_to_keep)
                 self.SOX = self.split_pollutants(self.emissions_data_clean, 'SOX', self.details_to_keep)
+                
+                # Which ISRM layers are needed?
+                self.L0_flag, self.L1_flag, self.L2_flag, self.linear_interp_flag = self.which_layers()
     
     def __str__(self):
         return 'Emissions object created from '+self.file_path
@@ -171,7 +179,17 @@ class emissions:
         
         return geometry, emissions_data, crs
 
-    
+    def check_height(self):
+        ''' '''
+        if 'HEIGHT_M' in self.emissions_data.columns:
+            return
+        
+        else:
+            self.emissions_data['HEIGHT_M'] = 0.0
+            if self.verbose:
+                print('<< No height column was detected in the emissions data, so one was manually added. >>')
+        return
+
     def check_emissions(self):
         ''' Runs a number of checks to make sure that emissions data is valid  '''
         ## (TEST 1) Check for I_CELL and J_CELL
@@ -291,7 +309,7 @@ class emissions:
             emissions_data_tmp = self.filter_emissions(emissions_data_tmp)
         
         # Use pandas processing to perform a groupby
-        groupby_features = ['I_CELL', 'J_CELL']+details_to_keep
+        groupby_features = ['I_CELL', 'J_CELL', 'HEIGHT_M']+details_to_keep
         emissions_data_clean = emissions_data_tmp.groupby(groupby_features).agg(func)
         if self.verbose:
             print('- Emissions have been reduced to contain the {} of emissions for each {}'.format(func.__name__, ', '.join(groupby_features)))
@@ -329,7 +347,7 @@ class emissions:
         emissions_data_tmp = emissions_object.copy(deep=True)
         
         # Pull only the I_CELL, J_CELL, pollutant emissions, and other details
-        groupby_features = ['I_CELL','J_CELL',pollutant]+details_to_keep
+        groupby_features = ['I_CELL','J_CELL','HEIGHT_M',pollutant]+details_to_keep
         pollutant_emissions = emissions_data_tmp[groupby_features].copy().drop_duplicates().reset_index()
         
         # Add geometry back in
@@ -343,6 +361,19 @@ class emissions:
             print('- Successfully created emissions object for {} for {}.'.format(self.emissions_name, pollutant))
         
         return pollutant_emissions
+    
+    def which_layers(self):
+        ''' Function that returns True or False for each of the layers '''
+        # Get the unique values of the height column (faster than using all cells)
+        heights = self.emissions_data_clean['HEIGHT_M'].unique()
+        
+        # Test the bounds of each layer
+        L0_flag = sum(heights<57.0) > 0
+        L1_flag = sum((heights>=57.0)&(heights<140.0)) > 0
+        L2_flag = sum(heights>=760.0) > 0
+        linear_interp_flag = sum((heights>=140.0)&(heights<760.0)) > 0 
+        
+        return L0_flag, L1_flag, L2_flag, linear_interp_flag
     
     def visualize_emissions(self, emissions_object, pollutant_name=''):
         ''' Creates map of emissions using simple chloropleth '''
@@ -358,7 +389,7 @@ class emissions:
         return fig
     
     def get_pollutant_layer(self, pol_name):
-        ''' Returns pollutant layer '''
+        ''' Returns pollutant layer '''        
         # Define a pollutant dictionary for convenience
         pollutant_dict = {'PM25':self.PM25,
                          'NH3':self.NH3,

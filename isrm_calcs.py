@@ -4,7 +4,7 @@
 Main Run File
 
 @author: libbykoolik
-Last updated: 2022-06-07
+Last updated: 2022-06-09
 """
 #%% Import useful libraries
 from pathlib import Path
@@ -12,6 +12,7 @@ import sys
 sys.path.insert(0,'./supporting')
 from isrm import isrm
 from emissions import emissions
+from concentration_layer import concentration_layer
 from concentration import concentration
 from population import population
 from control_file import control_file
