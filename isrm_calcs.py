@@ -44,8 +44,9 @@ else:
     verbose = cf.verbose
 
 # Define ISRM Variables and population variables
-isrm_fp = './data/ca_isrm.ncf'
-isrm_gfp = './data/InMAP_gridCells.shp'
+isrm_fps = ['./data/ISRM_NH3.npy','./data/ISRM_NOX.npy','./data/ISRM_PM25.npy',
+            './data/ISRM_SOX.npy','./data/ISRM_VOC.npy']
+isrm_gfp = './data/isrm_geo.feather'
 population_path = './data/ca2000.feather'
 
 def create_output_dir():
@@ -76,7 +77,7 @@ if __name__ == "__main__":
         try:
             # Default to verbose since this mode is just for checking files
             emis = emissions(emissions_path, units=units, name=name, load_file=False, verbose=True)
-            isrmgrid = isrm(isrm_fp, isrm_gfp, load_file=False, verbose=True)
+            isrmgrid = isrm(isrm_fps, isrm_gfp, load_file=False, verbose=True)
             pop = population(population_path, load_file=False, verbose=True)
             print("\n<< Emissions, ISRM, and population files exist and are able to be imported. >>\n")
         except:
@@ -85,7 +86,7 @@ if __name__ == "__main__":
     else: # for now, run concentration calculations since no health built
         output_dir = create_output_dir()
         emis = emissions(emissions_path, units=units, name=name, load_file=True, verbose=verbose)
-        isrmgrid = isrm(isrm_fp, isrm_gfp, load_file=True, verbose=verbose)
+        isrmgrid = isrm(isrm_fps, isrm_gfp, load_file=True, verbose=verbose)
         conc = concentration(emis, isrmgrid, run_calcs=True, verbose=verbose)
         
         print("\n<< Concentrations estimated >>\n")

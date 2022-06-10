@@ -29,18 +29,19 @@ class isrm:
         - verbose: enable for more detailed outputs 
         
     '''
-    def __init__(self, file_path, geo_file_path, load_file=True, verbose=False):
+    def __init__(self, isrm_fps, isrm_gfp, load_file=True, verbose=False):
         ''' Initializes the ISRM object'''        
         # Initialize paths and check that they are valid
-        self.file_path = file_path
-        self.geo_file_path = geo_file_path
+        sys.path.append(os.path.realpath('..'))
+        self.nh3_path, self.nox_path, self.pm25_path, self.sox_path, self.voc_path = isrm_fps
+        self.geo_file_path = isrm_gfp
         self.valid_file, self.valid_geo_file = self.check_path()
         
         # Grab other meta-parameters
         self.load_file = load_file
         self.verbose = verbose
         verboseprint = print if self.verbose else lambda *a, **k:None # for logging
-        verboseprint('\nCreating a new ISRM object from {}'.format(self.file_path))
+        verboseprint('\nLoading a new ISRM object.')
         
         # If the files do not exist, quit before opening
         if not self.valid_file:
@@ -54,9 +55,9 @@ class isrm:
         
         # Read ISRM data and geographic information
         if self.valid_file == True and self.load_file == True and self.valid_geo_file == True:
-            verboseprint('- Beginning to import ISRM netCDF data. This step may take some time.')
-            self.PM25, self.NH3, self.NOX, self.VOC, self.SOX = self.load_isrm()
-            verboseprint('- ISRM netCDF data imported. Five pollutant variables created')
+            verboseprint('- Beginning to import ISRM data. This step may take some time.')
+            self.PM25, self.NH3, self.NOX, self.SOX, self.VOC = self.load_isrm()
+            verboseprint('- ISRM data imported. Five pollutant variables created')
             verboseprint('- Beginning to import ISRM geographic data. This step may take some time.')
             self.geodata = self.load_geodata()
             verboseprint('- ISRM geographic data imported.')
@@ -74,9 +75,17 @@ class isrm:
     def check_path(self):
         ''' Checks if file exists at the path specified '''
         # Use the os library to check the path and the file
-        # First, check ISRM netCDF exists
-        path_exists = path.exists(self.file_path)
-        file_exists = path.isfile(self.file_path)
+        # First, check ISRM layers exist
+        good_paths = 0
+        good_files = 0
+        
+        for f in [self.nh3_path, self.nox_path, self.pm25_path, self.sox_path, self.voc_path]:            
+            good_paths += path.exists(f)
+            good_files += path.isfile(f)
+        
+        # Get Boolean path_exists and file_exists
+        path_exists = good_paths == 5
+        file_exists = good_files == 5
         
         # Second, check ISRM geodata exists
         geo_path_exists = path.exists(self.geo_file_path)
@@ -85,31 +94,19 @@ class isrm:
         return (path_exists and file_exists, geo_path_exists and geo_file_exists)
     
     def load_isrm(self):
-        ''' Loads ISRM File '''
-        # Open the NetCDF file 
-        isrm_nf = nf(self.file_path, mode='r', mmap=False)
-        
-        # Define the Pollutant Layers and Loop through to Slice into Variables
-        pollutant_layers = ['PrimaryPM25', 'pNH4', 'pNO3', 'pSO4', 'SOA']
-        pollutants = []
-        
-        for p in pollutant_layers:
-            pollutants.append(self.split_pollutant(isrm_nf, p))    
-        
-        # Close the NetCDF File before exiting
-        isrm_nf.close()
+        ''' Loads ISRM from numpy files '''
+        # Read each in with np.load
+        pollutants = [np.load(self.pm25_path),
+                      np.load(self.nh3_path),
+                      np.load(self.nox_path),
+                      np.load(self.sox_path),
+                      np.load(self.voc_path)]
         
         return pollutants
     
-    def split_pollutant(self, isrm_nf, pol_name):
-        ''' Grabs relevant pollutant layer data '''
-        pol_data = isrm_nf.variables[pol_name].data.copy()
-        
-        return pol_data
-    
     def load_geodata(self):
         ''' Loads shapefile into geopandas dataframe '''
-        isrm_gdf = gpd.read_file(self.geo_file_path)
+        isrm_gdf = gpd.read_feather(self.geo_file_path)
         isrm_gdf.columns = ['ISRM_ID', 'geometry']
         
         return isrm_gdf
