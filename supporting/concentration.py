@@ -106,11 +106,11 @@ class concentration:
         return detailed_concentration, detailed_concentration_clean, total_concentration
     
     
-    def visualize_concentrations(self, var, output_dir, export=False):
+    def visualize_concentrations(self, var, output_dir, ca_shp_fp, export=False):
         ''' Creates map of concentrations using simple chloropleth '''
         # Note to build this out further at some point in the future, works for now
         # Read in CA boundary
-        ca_shp = gpd.read_file('/Users/libbykoolik/Documents/Research/OEHHA Project/scripts/isrm_health_calculations/data/CA_State_TIGER2016.shp')
+        ca_shp = gpd.read_feather(ca_shp_fp)
         ca_prj = ca_shp.to_crs(self.crs)
         
         # Create necessary labels and strings
