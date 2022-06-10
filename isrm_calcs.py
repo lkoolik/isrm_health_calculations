@@ -48,6 +48,7 @@ isrm_fps = ['./data/ISRM_NH3.npy','./data/ISRM_NOX.npy','./data/ISRM_PM25.npy',
             './data/ISRM_SOX.npy','./data/ISRM_VOC.npy']
 isrm_gfp = './data/isrm_geo.feather'
 population_path = './data/ca2000.feather'
+ca_shp_path = './data/ca_state.feather'
 
 def create_output_dir():
     ''' Creates the output directory for files generated '''
@@ -90,7 +91,7 @@ if __name__ == "__main__":
         conc = concentration(emis, isrmgrid, run_calcs=True, verbose=verbose)
         
         print("\n<< Concentrations estimated >>\n")
-        conc.visualize_concentrations('TOTAL_CONC_UG/M3',output_dir, export=True)
+        conc.visualize_concentrations('TOTAL_CONC_UG/M3',output_dir, ca_shp_path, export=True)
         conc.export_concentrations(output_dir, detailed=False)
         print("* Concentration files output into: {}.".format(output_dir))
         
