@@ -40,6 +40,7 @@ class concentration_layer:
         # Get a few other metadata
         self.layer = layer
         self.isrm_id = self.isrm.ISRM_ID
+        self.receptor_id = self.isrm.receptor_IDs
         self.isrm_geom = self.isrm.geometry
         self.crs = self.isrm.crs
         self.name = self.emissions.emissions_name
@@ -71,10 +72,10 @@ class concentration_layer:
     
             # Add these together at each ISRM grid cell
             self.detailed_conc = self.combine_concentrations(self.pPM25,
-                                                             self.pNH4,
-                                                             self.pVOC,
-                                                             self.pNO3,
-                                                             self.pSO4)
+                                                              self.pNH4,
+                                                              self.pVOC,
+                                                              self.pNO3,
+                                                              self.pSO4)
             verboseprint('- Detailed concentrations are estimated from layer {}.'.format(self.layer))
             
     def __str__(self):
@@ -172,7 +173,7 @@ class concentration_layer:
         conc = np.dot(pol_emis['EMISSIONS_UG/S'], pol_isrm_slice)
         
         # Convert into a geodataframe
-        conc_df = pd.DataFrame(conc, columns=['CONC_UG/M3'], index=pol_emis.index)
+        conc_df = pd.DataFrame(conc, columns=['CONC_UG/M3'], index=self.receptor_id)#pol_emis.index)
         conc_gdf = pol_emis.merge(conc_df, left_index=True, right_index=True)
         
         return conc_gdf

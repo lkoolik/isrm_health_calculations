@@ -29,12 +29,14 @@ class isrm:
         - verbose: enable for more detailed outputs 
         
     '''
-    def __init__(self, isrm_fps, isrm_gfp, load_file=True, verbose=False):
+    def __init__(self, isrm_fps, isrm_gfp, output_region, region_of_interest, load_file=True, verbose=False):
         ''' Initializes the ISRM object'''        
         # Initialize paths and check that they are valid
         sys.path.append(os.path.realpath('..'))
         self.nh3_path, self.nox_path, self.pm25_path, self.sox_path, self.voc_path = isrm_fps
         self.geo_file_path = isrm_gfp
+        self.output_region = output_region
+        self.region_of_interest = region_of_interest
         self.valid_file, self.valid_geo_file = self.check_path()
         
         # Grab other meta-parameters
@@ -55,21 +57,28 @@ class isrm:
         
         # Read ISRM data and geographic information
         if self.valid_file == True and self.load_file == True and self.valid_geo_file == True:
-            verboseprint('- Beginning to import ISRM data. This step may take some time.')
-            self.PM25, self.NH3, self.NOX, self.SOX, self.VOC = self.load_isrm()
-            verboseprint('- ISRM data imported. Five pollutant variables created')
+            # Import the geographic data for the ISRM
             verboseprint('- Beginning to import ISRM geographic data. This step may take some time.')
             self.geodata = self.load_geodata()
             verboseprint('- ISRM geographic data imported.')
+            
+            # Pull a few relevant layers
             self.crs = self.geodata.crs
-            self.geometry = self.geodata['geometry']
             self.ISRM_ID = self.geodata['ISRM_ID']
+            self.geometry = self.geodata['geometry']
+            self.receptor_IDs, self.receptor_geometry = self.clip_isrm()
+            
+            # Import numeric ISRM layers
+            verboseprint('- Beginning to import ISRM data. This step may take some time.')
+            self.PM25, self.NH3, self.NOX, self.SOX, self.VOC = self.load_isrm()
+            verboseprint('- ISRM data imported. Five pollutant variables created')
+            
     
     def __str__(self):
-        return 'ISRM object created from '+self.file_path
+        return 'ISRM object'
 
     def __repr__(self):
-        return '< ISRM object created from '+self.file_path+'>'
+        return '< ISRM object >'
 
     
     def check_path(self):
@@ -93,14 +102,30 @@ class isrm:
             
         return (path_exists and file_exists, geo_path_exists and geo_file_exists)
     
+    def load_and_cut(self, path):
+        ''' Loads and cuts the ISRM numeric layer '''
+        # Load in the file
+        pollutant = np.load(path)
+        
+        if self.region_of_interest != 'CA':
+            # Trim the columns of each ISRM layer to just the necessary IDs
+            indices = self.receptor_IDs.values
+            pollutant = pollutant[:,:,indices]
+        
+        return pollutant
+    
     def load_isrm(self):
         ''' Loads ISRM from numpy files '''
-        # Read each in with np.load
-        pollutants = [np.load(self.pm25_path),
-                      np.load(self.nh3_path),
-                      np.load(self.nox_path),
-                      np.load(self.sox_path),
-                      np.load(self.voc_path)]
+        # Route to pollutant paths
+        pollutant_paths = [self.pm25_path, self.nh3_path, self.nox_path,
+                           self.sox_path, self.voc_path]
+ 
+        # Create a storage list
+        pollutants = []
+        
+        # Iterate through each path
+        for path in pollutant_paths:
+            pollutants.append(self.load_and_cut(path))
         
         return pollutants
     
@@ -110,6 +135,25 @@ class isrm:
         isrm_gdf.columns = ['ISRM_ID', 'geometry']
         
         return isrm_gdf
+    
+    def clip_isrm(self):
+        ''' Clips the ISRM receptors to only the relevant ones '''
+        if self.region_of_interest != 'CA':
+            # Make a copy of the output_region geodataframe
+            output_region = self.output_region.copy()
+            output_region_prj = output_region.to_crs(self.crs)
+            
+            # Select rows of isrm_geodata that are within the output_region
+            isrm_geodata = self.geodata.copy()
+            isrm_region = gpd.sjoin(isrm_geodata, output_region_prj)
+            receptor_IDs = isrm_region['ISRM_ID']
+            receptor_geometry = isrm_region['geometry']
+        
+        else: # Return all indices
+            receptor_IDs = self.geodata['ISRM_ID']
+            receptor_geometry = self.geodata['geometry']
+        
+        return receptor_IDs, receptor_geometry
     
     def get_pollutant_layer(self, pol_name):
         ''' Returns pollutant layer '''
