@@ -104,7 +104,7 @@ def estimate_exposure_percentile(exposure_gdf):
     
     return df_pctl
 
-def plot_percentile_exposure(output_dir, df_pctl):
+def plot_percentile_exposure(output_dir, f_out, df_pctl):
     ''' Creates a percentile plot by group '''
     # Define racial/ethnic groups of interest
     groups = ['TOTAL', 'ASIAN', 'BLACK', 'HISLA', 'INDIG', 'PACIS', 'WHITE','OTHER']
@@ -132,7 +132,7 @@ def plot_percentile_exposure(output_dir, df_pctl):
                   labels=['5th','25th','50th','75th','95th'])
     
     # Save the file
-    fname ='PM25_Exposure_Percentiles.png' # File Name
+    fname =f_out+'_PM25_Exposure_Percentiles.png' # File Name
     fpath = os.path.join(output_dir, fname)
     fig.savefig(fpath, dpi=200)
     
