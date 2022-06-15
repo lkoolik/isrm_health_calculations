@@ -81,7 +81,6 @@ if __name__ == "__main__":
         emis = emissions(emissions_path, units=units, name=name, load_file=True, verbose=verbose)
         isrmgrid = isrm(isrm_fps, isrm_gfp, output_region, region_of_interest, load_file=True, verbose=verbose)
         conc = concentration(emis, isrmgrid, run_calcs=True, verbose=verbose)
-        isrmgrid.receptor_IDs.to_csv('test.csv')
         print("\n<< Concentrations estimated >>\n")
         conc.visualize_concentrations('TOTAL_CONC_UG/M3',output_region, output_dir, f_out, ca_shp_path, export=True)
         conc.export_concentrations(output_dir, f_out, detailed=False)
