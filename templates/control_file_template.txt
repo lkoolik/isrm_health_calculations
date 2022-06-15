@@ -10,19 +10,20 @@
 ###############
 ## Meta Data ##
 ###############
-RUN_NAME: #example*
+- BATCH_NAME: #example*
+- RUN_NAME: #example*
 
 ####################
 ## EMISSIONS DATA ##
 ####################
-EMISSIONS_FILENAME: #example.shp
-EMISSIONS_UNITS: #ton/yr
+- EMISSIONS_FILENAME: #example.shp
+- EMISSIONS_UNITS: #ton/yr
 
 ####################################
 ## RUN CONTROLS                   ##
 ## These should be set to Y or N  ##
 ####################################
-CHECK_INPUTS: #Y
-VERBOSE: #Y
+- CHECK_INPUTS: #Y
+- VERBOSE: #Y
 
 

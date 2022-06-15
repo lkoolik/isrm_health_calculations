@@ -32,9 +32,9 @@ class control_file:
         self.valid_file = self.check_path()
         
         # Hardcode the current keywords for simplicity
-        self.keywords = ['RUN_NAME','EMISSIONS_FILENAME','EMISSIONS_UNITS',
-                         'CHECK_INPUTS','VERBOSE']
-        self.blanks_okay = [True, False, False, 
+        self.keywords = ['BATCH_NAME', 'RUN_NAME','EMISSIONS_FILENAME',
+                         'EMISSIONS_UNITS','CHECK_INPUTS','VERBOSE']
+        self.blanks_okay = [True, True, False, False, 
                             True, True]
         
         # Run basic checks on control file
@@ -45,7 +45,7 @@ class control_file:
             
         # If checks are good, import values
         if self.valid_structure and self.no_incorrect_blanks and self.valid_file:
-            self.run_name, self.emissions_path, self.emissions_units, self.check, self.verbose = self.get_all_inputs()
+            self.batch_name, self.run_name, self.emissions_path, self.emissions_units, self.check, self.verbose = self.get_all_inputs()
             self.valid_inputs = self.check_inputs()
             if self.valid_inputs:
                 print('\n<< Control file was successfully imported and inputs are correct >>')
@@ -138,6 +138,7 @@ class control_file:
         mapper = {'Y':True, 'N':False}
         
         # Get each input individually
+        batch_name = self.get_input_value('BATCH_NAME')
         run_name = self.get_input_value('RUN_NAME')
         emissions_path = self.get_input_value('EMISSIONS_FILENAME')
         emissions_units = self.get_input_value('EMISSIONS_UNITS')
@@ -156,19 +157,26 @@ class control_file:
         else:
             verbose = mapper[verbose] # convert Y/N to True/False
         
-        return run_name, emissions_path, emissions_units, check, verbose 
+        return batch_name, run_name, emissions_path, emissions_units, check, verbose 
     
     def check_inputs(self):
         ''' Once the inputs are imported, check them '''
-        ## (1) Check the run name
+        ## (1) Check the batch name and run name are strings
+        valid_batch_name = type(self.batch_name) == str
+        print('* The batch name provided is not valid (must be string).') if not valid_batch_name else ''
+        
         valid_run_name = type(self.run_name) == str
         print('* The run name provided is not valid (must be string).') if not valid_run_name else ''
         
-        ## (2) Check the emissions path
+        ## (2) If batch and run name are blank, replace with 'isrm_calcs'
+        if self.batch_name == '' and self.run_name == '':
+            self.batch_name = 'isrm_calcs'
+        
+        ## (3) Check the emissions path
         valid_emissions_path = self.check_path(file=self.emissions_path)
         print('* The emissions path provided is not valid.') if not valid_emissions_path else ''
         
-        ## (3) Check the emissions units
+        ## (4) Check the emissions units
         mass_units = ['ug','g','lb','ton','mt','kg'] # mass units from emissions.py
         time_units = ['s','min','hr','day','yr'] # time units from emissions.py
 
@@ -179,16 +187,16 @@ class control_file:
         print('* The emissions units provided is not valid. Acceptable mass emissions units are '+', '.join(mass_units)\
               +' and acceptable time units are '+', '.join(time_units)) if not valid_emissions_units else ''
         
-        ## (4) Check the check flag
+        ## (5) Check the check flag
         valid_check = type(self.check) == bool
         print('* The check flag provided is not valid. Use Y or N or leave blank.') if not valid_check else ''
         
-        ## (5) Check the verbose flag
+        ## (6) Check the verbose flag
         valid_verbose = type(self.verbose) == bool
         print('* The verbose flag provided is not valid. Use Y or N or leave blank.') if not valid_verbose else ''
         
         ## Output only one time
-        valid_inputs = valid_run_name and valid_emissions_path and \
+        valid_inputs = valid_batch_name and valid_run_name and valid_emissions_path and \
             valid_emissions_units and valid_check and valid_verbose
 
         return valid_inputs

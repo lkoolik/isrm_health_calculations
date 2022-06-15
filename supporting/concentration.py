@@ -106,7 +106,7 @@ class concentration:
         return detailed_concentration, detailed_concentration_clean, total_concentration
     
     
-    def visualize_concentrations(self, var, output_dir, ca_shp_fp, export=False):
+    def visualize_concentrations(self, var, output_dir, f_out, ca_shp_fp, export=False):
         ''' Creates map of concentrations using simple chloropleth '''
         # Note to build this out further at some point in the future, works for now
         # Read in CA boundary
@@ -119,7 +119,7 @@ class concentration:
         else:
             pol = 'All Emissions'
         t_str = 'PM2.5 Concentrations from {}'.format(pol)
-        fname = self.name + '_' + pol + '_concentrations.png'
+        fname = f_out + '_' + pol + '_concentrations.png'
         fname = str.lower(fname)
         fpath = os.path.join(output_dir, fname)
         
@@ -144,12 +144,12 @@ class concentration:
             fig.savefig(fpath, dpi=200)
         return
 
-    def export_concentrations(self, output_dir, detailed=False,):
+    def export_concentrations(self, output_dir, f_out, detailed=False,):
         ''' Exports concentration as a shapefile (detailed or total) '''
         
         # If detailed flag is True, export detailed shapefile
         if detailed:
-            fname = self.name + '_detailed_concentration.shp' # File Name
+            fname = f_out + '_detailed_concentration.shp' # File Name
             fpath = os.path.join(output_dir, fname)
             
             # Make a copy and change column names to meet shapefile requirements
@@ -165,7 +165,7 @@ class concentration:
             
         # If detailed flag is False, export only total concentration shapefile
         else:
-            fname = str.lower(self.name + '_total_concentration.shp') # File Name
+            fname = str.lower(f_out + '_total_concentration.shp') # File Name
             fpath = os.path.join(output_dir, fname)
             
             # Make a copy and change column names to meet shapefile requirements
