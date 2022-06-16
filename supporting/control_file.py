@@ -15,7 +15,8 @@ import matplotlib.pyplot as plt
 import os
 from os import path
 import sys
-import re     
+import re
+import difflib
             
 class control_file:
     '''
@@ -33,9 +34,11 @@ class control_file:
         
         # Hardcode the current keywords for simplicity
         self.keywords = ['BATCH_NAME', 'RUN_NAME','EMISSIONS_FILENAME',
-                         'EMISSIONS_UNITS','CHECK_INPUTS','VERBOSE']
-        self.blanks_okay = [True, True, False, False, 
-                            True, True]
+                         'EMISSIONS_UNITS','CHECK_INPUTS','VERBOSE',
+                         'REGION_OF_INTEREST','REGION_CATEGORY','OUTPUT_RESOLUTION']
+        self.blanks_okay = [True, True, False, 
+                            False, True, True,
+                            True, True, True]
         
         # Run basic checks on control file
         if self.valid_file:
@@ -45,7 +48,7 @@ class control_file:
             
         # If checks are good, import values
         if self.valid_structure and self.no_incorrect_blanks and self.valid_file:
-            self.batch_name, self.run_name, self.emissions_path, self.emissions_units, self.check, self.verbose = self.get_all_inputs()
+            self.batch_name, self.run_name, self.emissions_path, self.emissions_units, self.check, self.verbose, self.region_of_interest, self.region_category, self.output_resolution = self.get_all_inputs()
             self.valid_inputs = self.check_inputs()
             if self.valid_inputs:
                 print('\n<< Control file was successfully imported and inputs are correct >>')
@@ -79,7 +82,7 @@ class control_file:
             file_exists = path.isfile(file)
         return path_exists and file_exists
     
-    def get_input_value(self, keyword):
+    def get_input_value(self, keyword, upper=False):
         ''' Gets the input for the given keyword '''
         
         # Iterate through each line of the file to find the keyword
@@ -87,6 +90,9 @@ class control_file:
             re_k = '- '+keyword+':' # Grabs exact formatting
             if re_k in line:
                 line_val = line.split(':')[1].strip('\n').strip(' ')
+            
+        if upper: # Should be uppercased
+            line_val = line_val.upper()
             
         return line_val
     
@@ -142,6 +148,9 @@ class control_file:
         run_name = self.get_input_value('RUN_NAME')
         emissions_path = self.get_input_value('EMISSIONS_FILENAME')
         emissions_units = self.get_input_value('EMISSIONS_UNITS')
+        region_of_interest = self.get_input_value('REGION_OF_INTEREST', upper=True)
+        region_category = self.get_input_value('REGION_CATEGORY', upper=True)
+        output_resolution = self.get_input_value('OUTPUT_RESOLUTION', upper=True)
         
         # For CHECK_INPUTS and VERBOSE, assume something if no value is given
         check = self.get_input_value('CHECK_INPUTS')
@@ -156,8 +165,124 @@ class control_file:
             verbose = True
         else:
             verbose = mapper[verbose] # convert Y/N to True/False
+            
+        # For OUTPUT OPTIONS, assume something if no value is given
+        if region_of_interest == '':
+            print('* No value provided for the REGION_OF_INTEREST field. Assuming full California run.')
+            region_of_interest = 'CA'
+        if region_category == '':
+            print('* No value provided for the REGION_CATEGORY field. Assuming full California run.')
+            region_category = 'STATE'
+        if output_resolution == '':
+            print('* No value provided for the OUTPUT_RESOLUTION field. Assuming ISRM grid cells.')
+            output_resolution = 'ISRM'
         
-        return batch_name, run_name, emissions_path, emissions_units, check, verbose 
+        return batch_name, run_name, emissions_path, emissions_units, check, verbose, region_of_interest, region_category, output_resolution
+    
+    def get_region_dict(self):
+        ''' Hard-coded dictionary of acceptable values for regions '''
+        # Define lists and a dictionary of acceptable inputs
+        air_basins = ['GREAT BASIN VALLEYS','LAKE COUNTY','LAKE TAHOE','MOJAVE DESERT',
+                      'MOUNTAIN COUNTIES','NORTH CENTRAL COAST','NORTH COAST',
+                      'NORTHEAST PLATEAU','SACRAMENTO VALLEY','SALTON SEA','SAN DIEGO COUNTY',
+                      'SAN FRANCISCO BAY','SAN JOAQUIN VALLEY','SOUTH CENTRAL COAST','SOUTH COAST']
+        
+        air_districts = ['AMADOR','ANTELOPE VALLEY','BAY AREA','BUTTE','CALAVERAS','COLUSA',
+                         'EL DORADO','FEATHER RIVER','GLENN','GREAT BASIN UNIFIED','IMPERIAL',
+                         'KERN','LAKE','LASSEN','MARIPOSA','MENDOCINO','MODOC','MOJAVE DESERT',
+                         'MONTEREY BAY UNIFIED','NORTH COAST UNIFIED','NORTHERN SIERRA',
+                         'NORTHERN SONOMA','PLACER','SACRAMENTO METRO','SAN DIEGO',
+                         'SAN JOAQUIN VALLEY UNIFIED','SAN LUIS OBISPO','SANTA BARBARA','SHASTA',
+                         'SISKIYOU','SOUTH COAST','TEHAMA','TUOLUMNE','VENTURA','YOLO-SOLANO']
+        
+        counties = ['ALAMEDA','ALPINE','AMADOR','BUTTE','CALAVERAS','COLUSA','CONTRA COSTA',
+                    'DEL NORTE','EL DORADO','FRESNO','GLENN','HUMBOLDT','IMPERIAL','INYO',
+                    'KERN','KINGS','LAKE','LASSEN','LOS ANGELES','MADERA','MARIN','MARIPOSA',
+                    'MENDOCINO','MERCED','MODOC','MONO','MONTEREY','NAPA','NEVADA','ORANGE',
+                    'PLACER','PLUMAS','RIVERSIDE','SACRAMENTO','SAN BENITO','SAN BERNARDINO',
+                    'SAN DIEGO','SAN FRANCISCO','SAN JOAQUIN','SAN LUIS OBISPO','SAN MATEO',
+                    'SANTA BARBARA','SANTA CLARA','SANTA CRUZ','SHASTA','SIERRA','SISKIYOU',
+                    'SOLANO','SONOMA','STANISLAUS','SUTTER','TEHAMA','TRINITY','TULARE',
+                    'TUOLUMNE','VENTURA','YOLO','YUBA']
+        
+        dacs = counties.copy() # DACs are listed by county, and the names are the same -- ignore for now
+        
+        region_dict = {'AB':air_basins, 'AD':air_districts, 'C':counties}#, 'DAC':dacs}
+        
+        return region_dict
+    
+    def region_check_helper(self):
+        ''' Simple helper function for checking the region of interest and region_category inputs '''
+        # Import the region dict
+        region_dict = self.get_region_dict()
+        
+        ## First check that the REGION_CATEGORY is okay
+        region_category = self.region_category
+        
+        # Define some possible but acceptable wrong names
+        possible_wrong_names_dict = {'AB':['AIR BASIN', 'AIRBASIN', 'AIR_BASIN', 'BASIN'],
+                                     'AD':['AIR DISTRICT', 'AIRDISTRICT', 'AIR_DISTRICT', 'DISTRICT'],
+                                     'C':['COUNTY', 'COUNTIES']}#,
+                                     #'DAC':['DISADVANTAGED COMMUNITY', 'EJ COMMUNITY']} # to add DACs in future update
+        
+        # Check if region_category is correct
+        if region_category not in region_dict.keys() and region_category != 'STATE':
+            # Set possible replacement to NA as a holder value and create flag variable
+            possible_replacement = 'NA'
+            region_category_flag = False
+            
+            # Loop through the dictionary
+            for region in possible_wrong_names_dict.keys():
+                if region_category in possible_wrong_names_dict[region]: # If it's in the list, update possible_replacement
+                    possible_replacement = region
+                    region_category_flag = True
+                    print('* Incorrect value provided for the REGION_CATEGORY field, however a close replacement ({}) was found.'.format(possible_replacement))
+            
+            # Update region_category
+            region_category = possible_replacement
+            
+        else:
+            region_category_flag = True
+                
+        if region_category_flag and region_category != 'STATE':
+            ## Second, check the region of interest
+            region_of_interest = self.region_of_interest
+            
+            # Get a list of the options
+            region_opts = region_dict[region_category]
+            
+            # Check if region_of_interest is in region_opts
+            if region_of_interest not in region_opts and region_of_interest != 'CA':
+                # Set possible replacement to NA as a holder value and create flag variable
+                possible_replacement = 'NA'
+                region_of_interest_flag = False
+                
+                # Use the difflib function get_close_matches to find the closest match
+                closest_match = difflib.get_close_matches(region_of_interest, region_opts, n=1, cutoff=0.6)
+                
+                try: # If the list does not come back empty, should be able to grab the first entry 
+                    closest_match = closest_match[0]
+                    print('* Incorrect value provided for the REGION_OF_INTEREST field, however a close replacement ({}) was found.'.format(closest_match))
+                    region_of_interest_flag = True
+                    region_of_interest = closest_match
+                    
+                except: # Do nothing, will return region_of_interest = False
+                    pass
+                    
+            else:
+                region_of_interest_flag = True
+                
+            ## Update the self variables for region_category and region_of_interest
+            self.region_category = region_category
+            self.region_of_interest = region_of_interest
+        
+        elif region_category_flag and region_category == 'STATE':
+            region_of_interest_flag = True
+        
+        else:
+            region_of_interest_flag = False
+        
+        return region_category_flag, region_of_interest_flag
     
     def check_inputs(self):
         ''' Once the inputs are imported, check them '''
@@ -195,8 +320,19 @@ class control_file:
         valid_verbose = type(self.verbose) == bool
         print('* The verbose flag provided is not valid. Use Y or N or leave blank.') if not valid_verbose else ''
         
+        ## (7) Check the region and region_of_interest
+        valid_region_category, valid_region_of_interest = self.region_check_helper()
+        print('* The region category provided is not valid. Valid options include: AB, AD, and C. For fully state, leave blank.') if not valid_region_category else ''
+        print('* The region of interest provided is not valid or cannot be validated. Consult user manual for correct options.') if not valid_region_of_interest else ''
+        
+        ## (8) Check the output_resolution variable
+        valid_output_resolutions = ['ISRM', 'C', 'AB', 'AD']# to add DACs in future update, 'DACS']
+        valid_output_resolution = self.output_resolution in valid_output_resolutions
+        print('* The output resolution provided is not valid. Valid options include: '+', '.join(valid_output_resolutions)) if not valid_output_resolution else ''
+        
         ## Output only one time
         valid_inputs = valid_batch_name and valid_run_name and valid_emissions_path and \
-            valid_emissions_units and valid_check and valid_verbose
+            valid_emissions_units and valid_check and valid_verbose and \
+                valid_region_category and valid_region_of_interest and valid_output_resolution
 
         return valid_inputs

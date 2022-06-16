@@ -10,13 +10,15 @@ last modified: 2022-06-15
 #%% Import useful libraries
 from pathlib import Path
 import sys
+sys.path.insert(0,'./supporting')
+sys.path.insert(0,'./scripts')
 import argparse
 import os
-import datetime
 from os import path
+import datetime
+import geopandas as gpd
 
 #%% ISRM Tool Utils
-
 def create_output_dir(batch, name):
     ''' Creates the output directory for files generated '''
     # Grab current working directory and the 'outputs' sub folder
@@ -65,3 +67,22 @@ def create_output_dir(batch, name):
     print("\n<< Output files created will be saved in the following directory: "+output_dir+">>")
     
     return output_dir, f_out
+
+def get_output_region(region_of_interest, region_category, output_geometry_fps, ca_fps):
+    ''' Outputs a geodataframe of the output region '''
+    if region_of_interest != 'CA': # Check if output region even wanted
+        sys.path.append(os.path.realpath('..'))
+        
+        # Get the filepath
+        geo_file_fp = output_geometry_fps[region_category]
+    
+        # Read in the file as a geodataframe
+        geo_file = gpd.read_feather(geo_file_fp)
+        
+        # Clip to the region of interest
+        output_region = geo_file[geo_file['NAME']==region_of_interest]
+        
+    else: # We want all of the domain, so return all of CA
+        output_region = gpd.read_feather(ca_fps)
+        
+    return output_region

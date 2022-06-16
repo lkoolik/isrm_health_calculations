@@ -26,4 +26,9 @@
 - CHECK_INPUTS: #Y
 - VERBOSE: #Y
 
-
+#####################
+## OUTPUT OPTIONS  ##
+#####################
+- REGION_OF_INTEREST: #San Francisco Bay Area
+- REGION_CATEGORY: #AD
+- OUTPUT_RESOLUTION: #ISRM, C, AB, AD, or DACS

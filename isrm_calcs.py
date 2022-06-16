@@ -4,7 +4,7 @@
 Main Run File
 
 @author: libbykoolik
-Last updated: 2022-06-09
+Last updated: 2022-06-15
 """
 #%% Import useful libraries
 from pathlib import Path
@@ -44,13 +44,22 @@ else:
     units = cf.emissions_units
     check = cf.check
     verbose = cf.verbose
+    region_of_interest = cf.region_of_interest
+    region_category = cf.region_category
+    output_resolution = cf.output_resolution
 
-# Define ISRM Variables and population variables
+# Define data variable file paths
 isrm_fps = ['./data/ISRM_NH3.npy','./data/ISRM_NOX.npy','./data/ISRM_PM25.npy',
             './data/ISRM_SOX.npy','./data/ISRM_VOC.npy']
-isrm_gfp = './data/isrm_geo.feather'
+isrm_gfp = './data/isrm_geo_test.feather'
 population_path = './data/ca2000.feather'
-ca_shp_path = './data/ca_state.feather'
+ca_shp_path = './data/ca_border.feather'
+output_geometry_fps = {'AB': './data/air_basins.feather',
+                       'AD': './data/air_districts.feather',
+                       'C': './data/counties.feather'}
+
+# Define output region based on region_of_interest and region_category
+output_region = get_output_region(region_of_interest, region_category, output_geometry_fps, ca_shp_path)
 
 #%% Run Program
 if __name__ == "__main__":
@@ -61,7 +70,7 @@ if __name__ == "__main__":
         try:
             # Default to verbose since this mode is just for checking files
             emis = emissions(emissions_path, units=units, name=name, load_file=False, verbose=True)
-            isrmgrid = isrm(isrm_fps, isrm_gfp, load_file=False, verbose=True)
+            isrmgrid = isrm(isrm_fps, isrm_gfp, output_region, region_of_interest, load_file=False, verbose=True)
             pop = population(population_path, load_file=False, verbose=True)
             print("\n<< Emissions, ISRM, and population files exist and are able to be imported. >>\n")
         except:
@@ -70,11 +79,10 @@ if __name__ == "__main__":
     else: # for now, run concentration calculations since no health built
         output_dir, f_out = create_output_dir(batch, name)
         emis = emissions(emissions_path, units=units, name=name, load_file=True, verbose=verbose)
-        isrmgrid = isrm(isrm_fps, isrm_gfp, load_file=True, verbose=verbose)
+        isrmgrid = isrm(isrm_fps, isrm_gfp, output_region, region_of_interest, load_file=True, verbose=verbose)
         conc = concentration(emis, isrmgrid, run_calcs=True, verbose=verbose)
-        
         print("\n<< Concentrations estimated >>\n")
-        conc.visualize_concentrations('TOTAL_CONC_UG/M3',output_dir, f_out, ca_shp_path, export=True)
+        conc.visualize_concentrations('TOTAL_CONC_UG/M3',output_region, output_dir, f_out, ca_shp_path, export=True)
         conc.export_concentrations(output_dir, f_out, detailed=False)
         print("* Concentration files output into: {}.".format(output_dir))
         

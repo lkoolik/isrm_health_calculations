@@ -106,12 +106,15 @@ class concentration:
         return detailed_concentration, detailed_concentration_clean, total_concentration
     
     
-    def visualize_concentrations(self, var, output_dir, f_out, ca_shp_fp, export=False):
+    def visualize_concentrations(self, var, output_region, output_dir, f_out, ca_shp_fp, export=False):
         ''' Creates map of concentrations using simple chloropleth '''
         # Note to build this out further at some point in the future, works for now
         # Read in CA boundary
         ca_shp = gpd.read_feather(ca_shp_fp)
         ca_prj = ca_shp.to_crs(self.crs)
+        
+        # Reproject output_region
+        output_region = output_region.to_crs(self.crs)
         
         # Create necessary labels and strings
         if var[0:10] == 'CONC_UG/M3':
@@ -126,6 +129,9 @@ class concentration:
         # Grab relevant layer
         c_to_plot = self.detailed_conc_clean[['ISRM_ID','geometry',var]].copy()
         
+        # Clip to output region
+        c_to_plot = gpd.clip(c_to_plot, output_region)
+        
         fig, ax = plt.subplots(1,1)
         c_to_plot.plot(column=var,
                               figsize=(20,10),
@@ -134,6 +140,11 @@ class concentration:
                               ax = ax)
         
         ca_prj.plot(edgecolor='black', facecolor='none', ax=ax)
+        
+        # Clip to output_region
+        minx, miny, maxx, maxy = output_region.total_bounds
+        ax.set_xlim(minx, maxx)
+        ax.set_ylim(miny, maxy)
         
         ax.set_title(t_str)
         ax.xaxis.set_visible(False)
@@ -174,6 +185,6 @@ class concentration:
             
             # Export
             gdf_export.to_file(fpath)
-            print('- Total concentratitons output as {}'.format(fname))
+            print('- Total concentrations output as {}'.format(fname))
         
         return
