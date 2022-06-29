@@ -4,7 +4,7 @@
 ISRM Data Object
 
 @author: libbykoolik
-last modified: 2022-03-23
+last modified: 2022-06-10
 """
 
 # Import Libraries
@@ -26,7 +26,7 @@ class isrm:
         - file_path: file path to the ISRM grid NetCDF file (underlying data)
         - geo_file_path: file path to the shapefile of geographic information
         - load_file: set to True to import emissions, otherwise will just run checks
-        - verbose: enable for more detailed outputs 
+        - verbose: a Boolean enabling more detailed output statements 
         
     '''
     def __init__(self, isrm_fps, isrm_gfp, output_region, region_of_interest, load_file=True, verbose=False):
