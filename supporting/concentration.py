@@ -14,6 +14,7 @@ import pandas as pd
 import geopandas as gpd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 from scipy.io import netcdf_file as nf
 import os
 from os import path
@@ -132,11 +133,15 @@ class concentration:
         # Clip to output region
         c_to_plot = gpd.clip(c_to_plot, output_region)
         
+        sns.set_theme(context="notebook", style="whitegrid", font_scale=1.25)
+        
         fig, ax = plt.subplots(1,1)
         c_to_plot.plot(column=var,
                               figsize=(20,10),
                               legend=True,
                               legend_kwds={'label':r'Concentration of PM$_{2.5}$ ($\mu$g/m$^3$)'},
+                              cmap='viridis',
+                              edgecolor='none',
                               ax = ax)
         
         ca_prj.plot(edgecolor='black', facecolor='none', ax=ax)

@@ -4,24 +4,32 @@
 Main Run File
 
 @author: libbykoolik
-Last updated: 2022-06-15
+Last updated: 2022-06-29
 """
-#%% Import useful libraries
+#%% Import useful libraries, supporting objects, and scripts
+# Useful libraries for main script
 from pathlib import Path
 import sys
-sys.path.insert(0,'./supporting')
-from isrm import isrm
-from emissions import emissions
-from concentration_layer import concentration_layer
-from concentration import concentration
-from population import population
-from control_file import control_file
-sys.path.insert(0,'./scripts')
-from environmental_justice_calcs import *
-from tool_utils import *
 import argparse
 import os
 import datetime
+
+# Import supporting objects
+sys.path.insert(0,'./supporting')
+from concentration import concentration
+from concentration_layer import concentration_layer
+from control_file import control_file
+from emissions import emissions
+from health_data import health_data
+from isrm import isrm
+from population import population
+
+# Import supporting scripts
+sys.path.insert(0,'./scripts')
+from environmental_justice_calcs import *
+from health_impact_calcs import *
+from tool_utils import *
+
 
 #%% Use argparse to parse command line arguments
 # Initialize the parser object
@@ -57,6 +65,9 @@ ca_shp_path = './data/ca_border.feather'
 output_geometry_fps = {'AB': './data/air_basins.feather',
                        'AD': './data/air_districts.feather',
                        'C': './data/counties.feather'}
+hia_input_fps = {'POPULATION': './data/benmap_population.feather',
+                  'INCIDENCE': './data/benmap_incidence.feather',
+                  'POPULATION-INCIDENCE': './data/benmap_pop_inc.feather'}
 
 # Define output region based on region_of_interest and region_category
 output_region = get_output_region(region_of_interest, region_category, output_geometry_fps, ca_shp_path)
@@ -76,23 +87,46 @@ if __name__ == "__main__":
         except:
             print("\n<< Correct error messages above before running the program. >>\n")
         quit()
-    else: # for now, run concentration calculations since no health built
+    else: # for now, run everything
+        # Create an output directory
         output_dir, f_out = create_output_dir(batch, name)
+        
+        ### CONCENTRATION MODULE
+        ## Create emissions and ISRM objects
         emis = emissions(emissions_path, units=units, name=name, load_file=True, verbose=verbose)
         isrmgrid = isrm(isrm_fps, isrm_gfp, output_region, region_of_interest, load_file=True, verbose=verbose)
+        
+        ## Estimate concentrations
         conc = concentration(emis, isrmgrid, run_calcs=True, verbose=verbose)
         print("\n<< Concentrations estimated >>\n")
+        
+        ## Create plots and export results
         conc.visualize_concentrations('TOTAL_CONC_UG/M3',output_region, output_dir, f_out, ca_shp_path, export=True)
         conc.export_concentrations(output_dir, f_out, detailed=False)
         print("* Concentration files output into: {}.".format(output_dir))
         
+        ## Perform concentration-related EJ analyses
+        # Create a population object and intersect population with concentrations
         pop = population(population_path, load_file=True, verbose=verbose)
         pop_alloc = pop.allocate_population(isrmgrid.geodata, 'ISRM_ID')
         
+        # Create the exposure dataframe and run EJ functions
         exposure_gdf = create_exposure_df(conc, pop_alloc)
         exposure_disparity = get_overall_disparity(exposure_gdf)
         exposure_pctl = estimate_exposure_percentile(exposure_gdf)
+        
+        # Export results
         plot_percentile_exposure(output_dir, f_out, exposure_pctl)
+        
+        ### HEALTH MODULE
+        ## Create health input object
+        hia_inputs = health_data(hia_input_fps, verbose=verbose)
+        
+        ## Estimate excess mortality
+        mortality = calculate_excess_mortality(conc, hia_inputs, krewski)
+        
+        ## Plot and export
+        plot_total_mortality(mortality, ca_shp_path, 'TOTAL', output_dir, f_out, export=True)
         
         quit()
         
