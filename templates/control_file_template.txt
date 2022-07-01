@@ -10,8 +10,8 @@
 ###############
 ## Meta Data ##
 ###############
-- BATCH_NAME: #example*
-- RUN_NAME: #example*
+- BATCH_NAME: #example (*)
+- RUN_NAME: #example (*)
 
 ####################
 ## EMISSIONS DATA ##
@@ -23,19 +23,19 @@
 ## HEALTH RUN CONTROLS            ##
 ## These should be set to Y or N  ##
 ####################################
-- RUN_HEALTH: #Y
-- RACE_STRATIFIED_INCIDENCE: #Y
+- RUN_HEALTH: #Y (*)
+- RACE_STRATIFIED_INCIDENCE: #Y (*)
 
 ####################################
 ## RUN CONTROLS                   ##
 ## These should be set to Y or N  ##
 ####################################
-- CHECK_INPUTS: #Y
-- VERBOSE: #Y
+- CHECK_INPUTS: #Y (*)
+- VERBOSE: #Y (*)
 
 #####################
 ## OUTPUT OPTIONS  ##
 #####################
-- REGION_OF_INTEREST: #San Francisco Bay Area
-- REGION_CATEGORY: #AD
-- OUTPUT_RESOLUTION: #ISRM, C, AB, AD, or DACS
+- REGION_OF_INTEREST: #San Francisco Bay Area (*)
+- REGION_CATEGORY: #AD (*)
+- OUTPUT_RESOLUTION: #ISRM, C, AB, AD, or DACS (*)

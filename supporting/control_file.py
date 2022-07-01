@@ -4,7 +4,7 @@
 Control File Reading Object
 
 @author: libbykoolik
-last modified: 2022-06-07
+last modified: 2022-07-01
 """
 
 # Import Libraries
@@ -50,7 +50,7 @@ class control_file:
             
         # If checks are good, import values
         if self.valid_structure and self.no_incorrect_blanks and self.valid_file:
-            self.batch_name, self.run_name, self.emissions_path, self.emissions_units, self.check, self.verbose, self.region_of_interest, self.region_category, self.output_resolution = self.get_all_inputs()
+            self.batch_name, self.run_name, self.emissions_path, self.emissions_units, self.run_health, self.race_stratified, self.check, self.verbose, self.region_of_interest, self.region_category, self.output_resolution = self.get_all_inputs()
             self.valid_inputs = self.check_inputs()
             if self.valid_inputs:
                 print('\n<< Control file was successfully imported and inputs are correct >>')
@@ -150,9 +150,26 @@ class control_file:
         run_name = self.get_input_value('RUN_NAME')
         emissions_path = self.get_input_value('EMISSIONS_FILENAME')
         emissions_units = self.get_input_value('EMISSIONS_UNITS')
+        run_health = self.get_input_value('RUN_HEALTH', upper=True)
+        race_stratified = self.get_input_value('RACE_STRATIFIED_INCIDENCE', upper=True)
         region_of_interest = self.get_input_value('REGION_OF_INTEREST', upper=True)
         region_category = self.get_input_value('REGION_CATEGORY', upper=True)
         output_resolution = self.get_input_value('OUTPUT_RESOLUTION', upper=True)
+        
+        # For HEALTH RUN CONTROLS, assume something if no value is given
+        if run_health == '':
+            print('* No value provided for the RUN_HEALTH field. Assuming a full run.')
+            run_health = True
+        else:
+            run_health = mapper[run_health] # convert Y/N to True/False
+        
+        if race_stratified == '' and run_health == True:
+            print('* No value provided for the RACE_STRATIFIED field. Assuming non-race stratified incidence rates.')
+            race_stratified = False
+        elif race_stratified == '' and run_health == False:
+            race_stratified = False
+        else:
+            race_stratified = mapper[race_stratified] # convert Y/N to True/Fals
         
         # For CHECK_INPUTS and VERBOSE, assume something if no value is given
         check = self.get_input_value('CHECK_INPUTS')
@@ -179,7 +196,7 @@ class control_file:
             print('* No value provided for the OUTPUT_RESOLUTION field. Assuming ISRM grid cells.')
             output_resolution = 'ISRM'
         
-        return batch_name, run_name, emissions_path, emissions_units, check, verbose, region_of_interest, region_category, output_resolution
+        return batch_name, run_name, emissions_path, emissions_units, run_health, race_stratified, check, verbose, region_of_interest, region_category, output_resolution
     
     def get_region_dict(self):
         ''' Hard-coded dictionary of acceptable values for regions '''
@@ -314,11 +331,15 @@ class control_file:
         print('* The emissions units provided is not valid. Acceptable mass emissions units are '+', '.join(mass_units)\
               +' and acceptable time units are '+', '.join(time_units)) if not valid_emissions_units else ''
         
-        ## (5) Check the check flag
+        ## (5) Check the HEALTH RUN CONTROLS
+        valid_run_health = type(self.run_health) == bool
+        print('* The run health option provided is not valid. Use Y or N or leave blank.') if not valid_run_health else ''
+        valid_inc_choice = type(self.race_stratified) == bool
+        print('* The race stratified incidence choice provided is not valid. Use Y or N or leave blank.') if not valid_inc_choice else ''
+            
+        ## (6) Check the RUN CONTROLS
         valid_check = type(self.check) == bool
         print('* The check flag provided is not valid. Use Y or N or leave blank.') if not valid_check else ''
-        
-        ## (6) Check the verbose flag
         valid_verbose = type(self.verbose) == bool
         print('* The verbose flag provided is not valid. Use Y or N or leave blank.') if not valid_verbose else ''
         
@@ -334,7 +355,8 @@ class control_file:
         
         ## Output only one time
         valid_inputs = valid_batch_name and valid_run_name and valid_emissions_path and \
-            valid_emissions_units and valid_check and valid_verbose and \
-                valid_region_category and valid_region_of_interest and valid_output_resolution
+            valid_emissions_units and valid_run_health and valid_inc_choice and \
+                valid_check and valid_verbose and valid_region_category and \
+                    valid_region_of_interest and valid_output_resolution
 
         return valid_inputs
