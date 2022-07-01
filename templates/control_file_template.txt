@@ -1,10 +1,10 @@
 #################################################################################
 ## ISRM HEALTH CALCULATIONS TOOL CONTROL FILE                                  ##
-## last modified: 2022-06-06                                                   ##
+## last modified: 2022-06-30                                                   ##
 ##                                                                             ##
 ## Instructions: Replace the commented out sample inputs with your own inputs. ##
-## 		Do not change the keywords or anything inside the # boxes.    ##
-## 		Certain fields (noted with *) can be left blank if needed.    ##
+## 		 Do not change the keywords or anything inside the # boxes.    ##
+## 		 Certain fields (noted with *) can be left blank if needed.    ##
 #################################################################################
 
 ###############
@@ -18,6 +18,13 @@
 ####################
 - EMISSIONS_FILENAME: #example.shp
 - EMISSIONS_UNITS: #ton/yr
+
+####################################
+## HEALTH RUN CONTROLS            ##
+## These should be set to Y or N  ##
+####################################
+- RUN_HEALTH: #Y
+- RACE_STRATIFIED_INCIDENCE: #Y
 
 ####################################
 ## RUN CONTROLS                   ##

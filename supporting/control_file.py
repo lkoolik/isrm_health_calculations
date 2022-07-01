@@ -34,10 +34,12 @@ class control_file:
         
         # Hardcode the current keywords for simplicity
         self.keywords = ['BATCH_NAME', 'RUN_NAME','EMISSIONS_FILENAME',
-                         'EMISSIONS_UNITS','CHECK_INPUTS','VERBOSE',
+                         'EMISSIONS_UNITS', 'RUN_HEALTH', 'RACE_STRATIFIED_INCIDENCE',
+                         'CHECK_INPUTS','VERBOSE',
                          'REGION_OF_INTEREST','REGION_CATEGORY','OUTPUT_RESOLUTION']
         self.blanks_okay = [True, True, False, 
-                            False, True, True,
+                            False, True, True, 
+                            True, True,
                             True, True, True]
         
         # Run basic checks on control file
