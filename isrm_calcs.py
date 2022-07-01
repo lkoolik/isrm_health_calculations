@@ -50,6 +50,8 @@ else:
     name = cf.run_name
     emissions_path = cf.emissions_path
     units = cf.emissions_units
+    run_health = cf.run_health
+    race_stratified = cf.race_stratified
     check = cf.check
     verbose = cf.verbose
     region_of_interest = cf.region_of_interest
@@ -119,14 +121,15 @@ if __name__ == "__main__":
         plot_percentile_exposure(output_dir, f_out, exposure_pctl)
         
         ### HEALTH MODULE
-        ## Create health input object
-        hia_inputs = health_data(hia_input_fps, verbose=verbose)
-        
-        ## Estimate excess mortality
-        mortality = calculate_excess_mortality(conc, hia_inputs, krewski)
-        
-        ## Plot and export
-        plot_total_mortality(mortality, ca_shp_path, 'TOTAL', output_dir, f_out, export=True)
+        if run_health:
+            ## Create health input object
+            hia_inputs = health_data(hia_input_fps, verbose=verbose)
+            
+            ## Estimate excess mortality
+            mortality = calculate_excess_mortality(conc, hia_inputs, krewski)
+            
+            ## Plot and export
+            plot_total_mortality(mortality, ca_shp_path, 'TOTAL', output_dir, f_out, export=True)
         
         quit()
         
