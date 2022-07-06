@@ -4,7 +4,7 @@
 Tool Utils
 
 @author: libbykoolik
-last modified: 2022-06-15
+last modified: 2022-07-06
 """
 
 #%% Import useful libraries
@@ -67,6 +67,18 @@ def create_output_dir(batch, name):
     print("\n<< Output files created will be saved in the following directory: "+output_dir+">>")
     
     return output_dir, f_out
+
+def create_shape_out(output_dir):
+    ''' Create additional subdirectory for shapefiles '''
+    # Set up parent and sub
+    parent = output_dir
+    sub = 'shapes'
+    
+    # Make the directory and store directory path
+    os.mkdir(os.path.join(parent, sub))
+    shape_out = os.path.join(parent,sub)
+    
+    return shape_out
 
 def get_output_region(region_of_interest, region_category, output_geometry_fps, ca_fps):
     ''' Outputs a geodataframe of the output region '''

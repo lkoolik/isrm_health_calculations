@@ -4,7 +4,7 @@
 Health Impact Functions
 
 @author: libbykoolik
-last modified: 2022-07-05
+last modified: 2022-07-06
 """
 
 # Import Libraries
@@ -228,7 +228,7 @@ def export_health_impacts(hia_df, group, endpoint, output_dir, f_out):
     hia_df.to_file(fpath)
     return fname
 
-def visualize_and_export_hia(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out, verbose):
+def visualize_and_export_hia(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out, shape_out, verbose):
     ''' Automates this process a bit '''
     # Plot the map of mortality
     fname = plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out)
@@ -236,7 +236,7 @@ def visualize_and_export_hia(hia_df, ca_shp_fp, group, endpoint, output_dir, f_o
         print('- Detailed {} health impact maps output as {}'.format(endpoint.title(), fname))
         
     # Export the shapefile
-    fname = export_health_impacts(hia_df, group, endpoint, output_dir, f_out)
+    fname = export_health_impacts(hia_df, group, endpoint, shape_out, f_out)
     if verbose:
         print('- Detailed {} health impacts output as {}'.format(endpoint.title(), fname))
         

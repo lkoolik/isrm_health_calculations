@@ -4,7 +4,7 @@
 Main Run File
 
 @author: libbykoolik
-Last updated: 2022-07-05
+Last updated: 2022-07-06
 """
 #%% Import useful libraries, supporting objects, and scripts
 # Useful libraries for main script
@@ -92,6 +92,8 @@ if __name__ == "__main__":
     else: # for now, run everything
         # Create an output directory
         output_dir, f_out = create_output_dir(batch, name)
+        shape_out = create_shape_out(output_dir)
+        
         
         # Save a copy of the control file into the output directory
         shutil.copy(args.inputs, output_dir)
@@ -107,7 +109,7 @@ if __name__ == "__main__":
         
         ## Create plots and export results
         conc.visualize_concentrations('TOTAL_CONC_UG/M3',output_region, output_dir, f_out, ca_shp_path, export=True)
-        conc.export_concentrations(output_dir, f_out, detailed=False)
+        conc.export_concentrations(shape_out, f_out, detailed=False)
         print("* Concentration files output into: {}.".format(output_dir))
         
         ## Perform concentration-related EJ analyses
@@ -134,9 +136,9 @@ if __name__ == "__main__":
             lungcancer = calculate_excess_mortality(conc, hia_inputs, 'LUNG CANCER', krewski, verbose=verbose)            
             
             # Plot and export
-            visualize_and_export_hia(allcause, ca_shp_path, 'TOTAL', 'ALL CAUSE', output_dir, f_out, verbose=verbose)
-            visualize_and_export_hia(ihd, ca_shp_path, 'TOTAL', 'ISCHEMIC HEART DISEASE', output_dir, f_out, verbose=verbose)
-            visualize_and_export_hia(lungcancer, ca_shp_path, 'TOTAL', 'LUNG CANCER', output_dir, f_out, verbose=verbose)
+            visualize_and_export_hia(allcause, ca_shp_path, 'TOTAL', 'ALL CAUSE', output_dir, f_out, shape_out, verbose=verbose)
+            visualize_and_export_hia(ihd, ca_shp_path, 'TOTAL', 'ISCHEMIC HEART DISEASE', output_dir, f_out, shape_out, verbose=verbose)
+            visualize_and_export_hia(lungcancer, ca_shp_path, 'TOTAL', 'LUNG CANCER', output_dir, f_out, shape_out, verbose=verbose)
             
         quit()
         
