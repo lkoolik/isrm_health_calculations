@@ -13,6 +13,7 @@ import sys
 import argparse
 import os
 import datetime
+import shutil
 
 # Import supporting objects
 sys.path.insert(0,'./supporting')
@@ -91,6 +92,9 @@ if __name__ == "__main__":
     else: # for now, run everything
         # Create an output directory
         output_dir, f_out = create_output_dir(batch, name)
+        
+        # Save a copy of the control file into the output directory
+        shutil.copy(args.inputs, output_dir)
         
         ### CONCENTRATION MODULE
         ## Create emissions and ISRM objects
