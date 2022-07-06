@@ -231,11 +231,3 @@ class health_data:
                            'ISCHEMIC HEART DISEASE INC','LUNG CANCER INC','geometry']]
         
         return pop_inc, lookup_dict
-
-#%%
-# population_fp = '/Users/libbykoolik/Documents/Research/OEHHA Project/scripts/isrm_health_calculations/data/benmap_population_new.feather'
-# incidence_fp = '/Users/libbykoolik/Documents/Research/OEHHA Project/scripts/isrm_health_calculations/data/benmap_incidence.feather'
-# filepath_dict = {'POPULATION':population_fp, 'INCIDENCE':incidence_fp}
-# verbose = True
-
-# test = health_data(filepath_dict, verbose, False)

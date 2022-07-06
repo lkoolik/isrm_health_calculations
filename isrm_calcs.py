@@ -68,8 +68,7 @@ output_geometry_fps = {'AB': './data/air_basins.feather',
                        'AD': './data/air_districts.feather',
                        'C': './data/counties.feather'}
 hia_input_fps = {'POPULATION': './data/benmap_population_new.feather',
-                  'INCIDENCE': './data/benmap_incidence.feather'}#,
-                  # 'POPULATION-INCIDENCE': './data/benmap_pop_inc.feather'}
+                  'INCIDENCE': './data/benmap_incidence.feather'}
 
 # Define output region based on region_of_interest and region_category
 output_region = get_output_region(region_of_interest, region_category, output_geometry_fps, ca_shp_path)
