@@ -4,7 +4,7 @@
 Main Run File
 
 @author: libbykoolik
-Last updated: 2022-06-29
+Last updated: 2022-07-05
 """
 #%% Import useful libraries, supporting objects, and scripts
 # Useful libraries for main script
@@ -67,9 +67,8 @@ ca_shp_path = './data/ca_border.feather'
 output_geometry_fps = {'AB': './data/air_basins.feather',
                        'AD': './data/air_districts.feather',
                        'C': './data/counties.feather'}
-hia_input_fps = {'POPULATION': './data/benmap_population.feather',
-                  'INCIDENCE': './data/benmap_incidence.feather',
-                  'POPULATION-INCIDENCE': './data/benmap_pop_inc.feather'}
+hia_input_fps = {'POPULATION': './data/benmap_population_new.feather',
+                  'INCIDENCE': './data/benmap_incidence.feather'}
 
 # Define output region based on region_of_interest and region_category
 output_region = get_output_region(region_of_interest, region_category, output_geometry_fps, ca_shp_path)
@@ -123,13 +122,17 @@ if __name__ == "__main__":
         ### HEALTH MODULE
         if run_health:
             ## Create health input object
-            hia_inputs = health_data(hia_input_fps, verbose=verbose)
+            hia_inputs = health_data(hia_input_fps, verbose=verbose, race_stratified=False)
             
             ## Estimate excess mortality
-            mortality = calculate_excess_mortality(conc, hia_inputs, krewski)
+            allcause = calculate_excess_mortality(conc, hia_inputs, 'ALL CAUSE', krewski, verbose=verbose)
+            ihd = calculate_excess_mortality(conc, hia_inputs, 'ISCHEMIC HEART DISEASE', krewski, verbose=verbose)
+            lungcancer = calculate_excess_mortality(conc, hia_inputs, 'LUNG CANCER', krewski, verbose=verbose)            
             
-            ## Plot and export
-            plot_total_mortality(mortality, ca_shp_path, 'TOTAL', output_dir, f_out, export=True)
-        
+            # Plot and export
+            visualize_and_export_hia(allcause, ca_shp_path, 'TOTAL', 'ALL CAUSE', output_dir, f_out, verbose=verbose)
+            visualize_and_export_hia(ihd, ca_shp_path, 'TOTAL', 'ISCHEMIC HEART DISEASE', output_dir, f_out, verbose=verbose)
+            visualize_and_export_hia(lungcancer, ca_shp_path, 'TOTAL', 'LUNG CANCER', output_dir, f_out, verbose=verbose)
+            
         quit()
         
