@@ -3,7 +3,7 @@ A repository of scripts used for converting emissions to concentrations and heal
 
 *Libby Koolik, UC Berkeley*
 
-Last modified June 8, 2022
+Last modified July 7, 2022
 
 ## Table of Contents
 * Purpose and Goals ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#purpose-and-goals))
@@ -24,14 +24,84 @@ TBD
 ## Code Details ##
 Below is a brief table of contents for the Code Details section of the Readme.
 * Requirements ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#requirements))
+* `isrm_calcs.py` ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#isrm_calcspy))
 * Supporting Code ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#supporting-code))
+   * `concentration_layer.py` ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#concentration-layerpy))
+   * `concentration.py` ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#concentrationpy))
    * `control_file.py` ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#control_filepy))
    * `emissions.py` ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#emissionspy))
+   * `health_data.py` ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#health_datapy))
+   * `isrm.py` ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#isrmpy))
+   * `population.py` ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#populationpy))
+* Scripts ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#scripts))
+   * `environmental_justice_calcs.py` ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#environmental-justice-calcspy))
+   * `health_impact_calcs.py` ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#health-impact-calcspy))
+   * `tool_utils.py` ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#tool-utilspy))
 
 ### Requirements
+The code is written in Python 3. The library requirements are included in this repository as `requirements.txt`. For completeness, they are reproduced here:
+* attrs==21.4.0
+* certifi==2021.10.8
+* click==8.1.2
+* click-plugins==1.1.1
+* cligj==0.7.2
+* cycler==0.11.0
+* DateTime==4.5
+* Fiona==1.8.21
+* fonttools==4.32.0
+* geopandas==0.10.2
+* kiwisolver==1.4.2
+* matplotlib==3.5.1
+* munch==2.5.0
+* numpy==1.22.3
+* packaging==21.3
+* pandas==1.4.2
+* pathlib==1.0.1
+* Pillow==9.1.0
+* pyarrow==7.0.0
+* pyparsing==3.0.8
+* pyproj==3.3.0
+* python-dateutil==2.8.2
+* pytz==2022.1
+* Rtree==1.0.0
+* scipy==1.8.0
+* seaborn==0.11.2
+* Shapely==1.8.1.post1
+* six==1.16.0
+* zope.interface==5.4.0
+
+Python libraries can be installed by running `pip install -r requirements.txt` on a Linux/Mac command line.  
+
+### `isrm_calcs.py`
+Text
+
 
 ### Supporting Code
 To streamline calculations and increase functionality of the code, python `classes` were created. These class definitions are saved in the `supporting` folder of the repository. The following sections outline how each of these classes work.
+
+#### `concentration_layer.py` 
+Text goes here
+
+*Inputs*
+text
+
+*Attributes*
+text
+
+*Simple Functions*
+text
+
+#### `concentration.py` 
+Text goes here
+
+*Inputs*
+text
+
+*Attributes*
+text
+
+*Simple Functions*
+text
 
 #### `control_file.py`
 The `control_file` object is used to check and read the control file for a run:
@@ -89,3 +159,60 @@ The `emissions` object is primarily built off of `geopandas`. It has the followi
 * `convert_units`: converts units from provided units to μg/s using the unit dictionaries built-in
 * `visualize_emissions`: creates a simple map of emissions for a provided pollutant
 * `buffer_emis`: adds a buffer of distance `dist` to the emissions geography
+
+#### `health_data.py` 
+Text goes here
+
+*Inputs*
+text
+
+*Attributes*
+text
+
+*Simple Functions*
+text
+
+#### `isrm.py` 
+Text goes here
+
+*Inputs*
+text
+
+*Attributes*
+text
+
+*Simple Functions*
+text
+
+#### `population.py` 
+Text goes here
+
+*Inputs*
+text
+
+*Attributes*
+text
+
+*Simple Functions*
+text
+
+### Scripts
+To streamline calculations and increase functionality of the code, python scripts were created for major calculations/operations. Scripts are saved in the `scripts` folder of the repository. The following sections outline the contents of each script file, and how the functions inside them work.
+
+#### `environmental_justice_calcs.py` 
+Text goes here
+
+*Function #1*
+text
+
+#### `health_impact_calcs.py` 
+Text goes here
+
+*Function #1*
+text
+
+#### `tool_utils.py` 
+Text goes here
+
+*Function #1*
+text
