@@ -4,7 +4,7 @@
 Health Impact Functions
 
 @author: libbykoolik
-last modified: 2022-07-06
+last modified: 2022-07-18
 """
 
 # Import Libraries
@@ -116,14 +116,21 @@ def plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out):
     mortality_col = endpoint + '_' + group
     group_label = group.title()
     
+    # Set true zeros to 10^-9 to avoid divide by zero issues
+    hia_df.loc[hia_df[group]==0,group] = 10.0**-9.0
+    hia_df.loc[hia_df[mortality_col]==0, mortality_col] = 10.0**-9.0
+
     # Add new columns to hia_df for plotting
-    # hia_df['POP_AREA_NORM'] = hia_df[group]/hia_df.area*1000.0*1000.0
-    hia_df = hia_df[hia_df['TOTAL_CONC_UG/M3']>0]
-    hia_df = hia_df[hia_df[group]>0]
-    hia_df = hia_df[hia_df[mortality_col]>0]
     hia_df['POP_AREA_NORM'] = hia_df[group]/hia_df.area*1000.0*1000.0
     hia_df['MORT_AREA_NORM'] = hia_df[mortality_col]/hia_df.area*1000.0*1000.0
     hia_df['MORT_OVER_POP'] = hia_df[mortality_col]/hia_df[group]*100000.0    
+    
+    # Grab the minimums that do not include the surrogate zeros
+    hia_pop_area_min = hia_df.loc[hia_df[group]>10.0**-9.0,'POP_AREA_NORM'].min()
+    hia_mort_area_min = hia_df.loc[hia_df[mortality_col]>10.0**-9.0, 'MORT_AREA_NORM'].min()
+    
+    # Update MORT_OVER_POP to avoid 100% mortality in areas where there is no population
+    hia_df.loc[hia_df[group]==hia_df[mortality_col],'MORT_OVER_POP'] = hia_df['MORT_OVER_POP'].min()*0.0001
 
     # Initialize the figure as three panes
     fig, (ax0,ax1,ax2,ax3) = plt.subplots(1,4, figsize=(22,6))
@@ -132,7 +139,7 @@ def plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out):
     hia_df.plot(column='POP_AREA_NORM', legend=True,
                 legend_kwds={'label':r'Population Density (population/km$^2$)'},
                 edgecolor='none', cmap='Greys',
-                norm=matplotlib.colors.LogNorm(vmin=hia_df['POP_AREA_NORM'].min(),
+                norm=matplotlib.colors.LogNorm(vmin=hia_pop_area_min,
                                                 vmax=hia_df['POP_AREA_NORM'].max()),
                 ax=ax0)
     ca_shp.dissolve().plot(edgecolor='black',facecolor='none', linewidth=1,ax=ax0)
@@ -150,7 +157,7 @@ def plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out):
     hia_df.plot(column='MORT_AREA_NORM', legend=True,
                 legend_kwds={'label':r'Excess Mortality (mortality/km$^2$)'},
                 edgecolor='none', cmap='Greys',
-                norm=matplotlib.colors.LogNorm(vmin=hia_df['MORT_AREA_NORM'].min(),
+                norm=matplotlib.colors.LogNorm(vmin=hia_mort_area_min,
                                                 vmax=hia_df['MORT_AREA_NORM'].max()),
                 ax=ax2)
     ca_shp.dissolve().plot(edgecolor='black',facecolor='none', linewidth=1,ax=ax2)
