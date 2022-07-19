@@ -4,7 +4,7 @@
 Control File Reading Object
 
 @author: libbykoolik
-last modified: 2022-07-01
+last modified: 2022-07-19
 """
 
 # Import Libraries
@@ -17,6 +17,7 @@ from os import path
 import sys
 import re
 import difflib
+import logging
             
 class control_file:
     '''
@@ -27,7 +28,9 @@ class control_file:
         
     '''
     def __init__(self, file_path):
-        ''' Initializes the control file object'''        
+        ''' Initializes the control file object'''   
+        logging.info('<< Reading Control File >>')
+        
         # Initialize path and check that it is valid
         self.file_path = file_path
         self.valid_file = self.check_path()
@@ -53,24 +56,24 @@ class control_file:
             self.batch_name, self.run_name, self.emissions_path, self.emissions_units, self.run_health, self.race_stratified, self.check, self.verbose, self.region_of_interest, self.region_category, self.output_resolution = self.get_all_inputs()
             self.valid_inputs = self.check_inputs()
             if self.valid_inputs:
-                print('\n<< Control file was successfully imported and inputs are correct >>')
+                logging.info('\n << Control file was successfully imported and inputs are correct >>')
                 self.ready = True
             else:
-                print('\n<< Control file was successfully imported but inputs are not correct >>')
+                logging.info('\n << ERROR: Control file was successfully imported but inputs are not correct >>')
                 self.ready = False
         else:
             if not self.valid_structure:
-                print('\n* Control file did not have the correct structure.')
-                print('* Please confirm that the control file has the following keywords exactly once each:')
-                print('   * '+'\n   * '.join(self.keywords))
+                logging.info('\n * Control file did not have the correct structure.')
+                logging.info('* Please confirm that the control file has the following keywords exactly once each:')
+                logging.info('   * '+'\n   * '.join(self.keywords))
             if not self.no_incorrect_blanks:
-                print('* Some keywords were left blank incorrectly in the control file.')
-                print('* Only the following keywords can be left blank:')
-                print('   * '+'\n   * '.join(pd.Series(self.keywords)[self.blanks_okay].tolist()))
+                logging.info('* Some keywords were left blank incorrectly in the control file.')
+                logging.info('* Only the following keywords can be left blank:')
+                logging.info('   * '+'\n   * '.join(pd.Series(self.keywords)[self.blanks_okay].tolist()))
             if not self.valid_file:
-                print('* The control file path is not valid.')
+                logging.info('* The control file path is not valid.')
             
-            print('\n<< Control File was not correct. Please revise errors and try again. >>\n')
+            logging.info('\n << ERROR: Control File was not correct. Please revise errors and try again. >>\n')
             self.ready = False
             
     def check_path(self, file=''):
@@ -158,13 +161,13 @@ class control_file:
         
         # For HEALTH RUN CONTROLS, assume something if no value is given
         if run_health == '':
-            print('* No value provided for the RUN_HEALTH field. Assuming a full run.')
+            logging.info('* No value provided for the RUN_HEALTH field. Assuming a full run.')
             run_health = True
         else:
             run_health = mapper[run_health] # convert Y/N to True/False
         
         if race_stratified == '' and run_health == True:
-            print('* No value provided for the RACE_STRATIFIED field. Assuming non-race stratified incidence rates.')
+            logging.info('* No value provided for the RACE_STRATIFIED field. Assuming non-race stratified incidence rates.')
             race_stratified = False
         elif race_stratified == '' and run_health == False:
             race_stratified = False
@@ -174,26 +177,26 @@ class control_file:
         # For CHECK_INPUTS and VERBOSE, assume something if no value is given
         check = self.get_input_value('CHECK_INPUTS')
         if check == '':
-            print('* No value provided for the CHECK_INPUTS field. Assuming a full run.')
+            logging.info('* No value provided for the CHECK_INPUTS field. Assuming a full run.')
             check = False
         else:
             check = mapper[check] # convert Y/N to True/False
         verbose = self.get_input_value('VERBOSE')
         if verbose == '':
-            print('* No value provided for the VERBOSE field. Assuming a verbose run.')
+            logging.info('* No value provided for the VERBOSE field. Assuming a verbose run.')
             verbose = True
         else:
             verbose = mapper[verbose] # convert Y/N to True/False
             
         # For OUTPUT OPTIONS, assume something if no value is given
         if region_of_interest == '':
-            print('* No value provided for the REGION_OF_INTEREST field. Assuming full California run.')
+            logging.info('* No value provided for the REGION_OF_INTEREST field. Assuming full California run.')
             region_of_interest = 'CA'
         if region_category == '':
-            print('* No value provided for the REGION_CATEGORY field. Assuming full California run.')
+            logging.info('* No value provided for the REGION_CATEGORY field. Assuming full California run.')
             region_category = 'STATE'
         if output_resolution == '':
-            print('* No value provided for the OUTPUT_RESOLUTION field. Assuming ISRM grid cells.')
+            logging.info('* No value provided for the OUTPUT_RESOLUTION field. Assuming ISRM grid cells.')
             output_resolution = 'ISRM'
         
         return batch_name, run_name, emissions_path, emissions_units, run_health, race_stratified, check, verbose, region_of_interest, region_category, output_resolution
@@ -255,7 +258,7 @@ class control_file:
                 if region_category in possible_wrong_names_dict[region]: # If it's in the list, update possible_replacement
                     possible_replacement = region
                     region_category_flag = True
-                    print('* Incorrect value provided for the REGION_CATEGORY field, however a close replacement ({}) was found.'.format(possible_replacement))
+                    logging.info('* Incorrect value provided for the REGION_CATEGORY field, however a close replacement ({}) was found.'.format(possible_replacement))
             
             # Update region_category
             region_category = possible_replacement
@@ -281,7 +284,7 @@ class control_file:
                 
                 try: # If the list does not come back empty, should be able to grab the first entry 
                     closest_match = closest_match[0]
-                    print('* Incorrect value provided for the REGION_OF_INTEREST field, however a close replacement ({}) was found.'.format(closest_match))
+                    logging.info('* Incorrect value provided for the REGION_OF_INTEREST field, however a close replacement ({}) was found.'.format(closest_match))
                     region_of_interest_flag = True
                     region_of_interest = closest_match
                     
@@ -307,10 +310,10 @@ class control_file:
         ''' Once the inputs are imported, check them '''
         ## (1) Check the batch name and run name are strings
         valid_batch_name = type(self.batch_name) == str
-        print('* The batch name provided is not valid (must be string).') if not valid_batch_name else ''
+        logging.info('* The batch name provided is not valid (must be string).') if not valid_batch_name else ''
         
         valid_run_name = type(self.run_name) == str
-        print('* The run name provided is not valid (must be string).') if not valid_run_name else ''
+        logging.info('* The run name provided is not valid (must be string).') if not valid_run_name else ''
         
         ## (2) If batch and run name are blank, replace with 'isrm_calcs'
         if self.batch_name == '' and self.run_name == '':
@@ -318,7 +321,7 @@ class control_file:
         
         ## (3) Check the emissions path
         valid_emissions_path = self.check_path(file=self.emissions_path)
-        print('* The emissions path provided is not valid.') if not valid_emissions_path else ''
+        logging.info('* The emissions path provided is not valid.') if not valid_emissions_path else ''
         
         ## (4) Check the emissions units
         mass_units = ['ug','g','lb','ton','mt','kg'] # mass units from emissions.py
@@ -328,30 +331,30 @@ class control_file:
         tmp_units = self.emissions_units.lower().split('/')
 
         valid_emissions_units = tmp_units[0] in mass_units and tmp_units[1] in time_units
-        print('* The emissions units provided is not valid. Acceptable mass emissions units are '+', '.join(mass_units)\
+        logging.info('* The emissions units provided is not valid. Acceptable mass emissions units are '+', '.join(mass_units)\
               +' and acceptable time units are '+', '.join(time_units)) if not valid_emissions_units else ''
         
         ## (5) Check the HEALTH RUN CONTROLS
         valid_run_health = type(self.run_health) == bool
-        print('* The run health option provided is not valid. Use Y or N or leave blank.') if not valid_run_health else ''
+        logging.info('* The run health option provided is not valid. Use Y or N or leave blank.') if not valid_run_health else ''
         valid_inc_choice = type(self.race_stratified) == bool
-        print('* The race stratified incidence choice provided is not valid. Use Y or N or leave blank.') if not valid_inc_choice else ''
+        logging.info('* The race stratified incidence choice provided is not valid. Use Y or N or leave blank.') if not valid_inc_choice else ''
             
         ## (6) Check the RUN CONTROLS
         valid_check = type(self.check) == bool
-        print('* The check flag provided is not valid. Use Y or N or leave blank.') if not valid_check else ''
+        logging.info('* The check flag provided is not valid. Use Y or N or leave blank.') if not valid_check else ''
         valid_verbose = type(self.verbose) == bool
-        print('* The verbose flag provided is not valid. Use Y or N or leave blank.') if not valid_verbose else ''
+        logging.info('* The verbose flag provided is not valid. Use Y or N or leave blank.') if not valid_verbose else ''
         
         ## (7) Check the region and region_of_interest
         valid_region_category, valid_region_of_interest = self.region_check_helper()
-        print('* The region category provided is not valid. Valid options include: AB, AD, and C. For fully state, leave blank.') if not valid_region_category else ''
-        print('* The region of interest provided is not valid or cannot be validated. Consult user manual for correct options.') if not valid_region_of_interest else ''
+        logging.info('* The region category provided is not valid. Valid options include: AB, AD, and C. For fully state, leave blank.') if not valid_region_category else ''
+        logging.info('* The region of interest provided is not valid or cannot be validated. Consult user manual for correct options.') if not valid_region_of_interest else ''
         
         ## (8) Check the output_resolution variable
         valid_output_resolutions = ['ISRM', 'C', 'AB', 'AD']# to add DACs in future update, 'DACS']
         valid_output_resolution = self.output_resolution in valid_output_resolutions
-        print('* The output resolution provided is not valid. Valid options include: '+', '.join(valid_output_resolutions)) if not valid_output_resolution else ''
+        logging.info('* The output resolution provided is not valid. Valid options include: '+', '.join(valid_output_resolutions)) if not valid_output_resolution else ''
         
         ## Output only one time
         valid_inputs = valid_batch_name and valid_run_name and valid_emissions_path and \

@@ -4,17 +4,19 @@
 Emissions Data Object
 
 @author: libbykoolik
-last modified: 2022-06-08
+last modified: 2022-07-19
 """
 
 # Import Libraries
+import sys
 import pandas as pd
 import geopandas as gpd
+import logging
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 from os import path
-import sys
+
 
 #%% Define the Emissions Object
 class emissions:
@@ -31,7 +33,9 @@ class emissions:
         
     '''
     def __init__(self, file_path, units='ug/s', name='', details_to_keep=[], filter_dict={}, load_file=True, verbose=False):
-        ''' Initializes the emissions object'''        
+        ''' Initializes the emissions object'''     
+        logging.info('<< Reading Emissions File >>')
+        
         # Initialize path and check that it is valid
         self.file_path = file_path
         self.file_type = file_path.split('.')[-1].lower()
@@ -43,12 +47,12 @@ class emissions:
         self.filter_dict = filter_dict
         self.filter = bool(self.filter_dict) # returns False if empty, True if not empty
         self.verbose = verbose
-        verboseprint = print if self.verbose else lambda *a, **k:None # for logging
-        verboseprint('\nCreating a new emissions object from {}'.format(self.file_path))
+        verboseprint = logging.info if self.verbose else lambda *a, **k:None # for logging
+        verboseprint('- Creating a new emissions object from {}'.format(self.file_path))
         
         # If the file does not exist, quit before opening
         if not self.valid_file:
-            print('\n<< ERROR: The filepath provided is not correct. Please correct and retry. >>')
+            logging.info('\n<< ERROR: The filepath provided is not correct. Please correct and retry. >>')
             sys.exit()
         else:
             verboseprint('- Filepath and file found. Proceeding to import emissions data.')
@@ -57,7 +61,7 @@ class emissions:
         self.units = units 
         self.valid_units = self.check_units()
         if not self.valid_units:
-            print('\n<< ERROR: The units provided ({}) are not valid. Please convert emissions to ug/s (micrograms per second) and try again. >>'.format(self.units))
+            logging.info('\n<< ERROR: The units provided ({}) are not valid. Please convert emissions to ug/s (micrograms per second) and try again. >>'.format(self.units))
             sys.exit()
         else:
             verboseprint('- Units of provided emissions ({}) are valid.'.format(self.units))
@@ -94,6 +98,7 @@ class emissions:
                 
                 # Which ISRM layers are needed?
                 self.L0_flag, self.L1_flag, self.L2_flag, self.linear_interp_flag = self.which_layers()
+                logging.info('\n')
     
     def __str__(self):
         return 'Emissions object created from '+self.file_path
@@ -187,7 +192,7 @@ class emissions:
         else:
             self.emissions_data['HEIGHT_M'] = 0.0
             if self.verbose:
-                print('<< No height column was detected in the emissions data, so one was manually added. >>')
+                logging.info('* No height column was detected in the emissions data, so one was manually added.')
         return
 
     def check_emissions(self):
@@ -215,9 +220,9 @@ class emissions:
                     
         # After iterating through all of the pollutants, check which couldn't be identified or mapped
         if len(missing)>0:
-            print('\n<< ERROR: required pollutants are missing from data. Please check data and try again. >>')
-            print('- The tool requires that these five pollutants be included as columns in emissions data:', ', '.join(correct_pollutants))
-            print('- The tool was not able to find or map:', ', '.join(missing))
+            logging.info('\n<< ERROR: required pollutants are missing from data. Please check data and try again. >>')
+            logging.info('* The tool requires that these five pollutants be included as columns in emissions data:', ', '.join(correct_pollutants))
+            logging.info('* The tool was not able to find or map:', ', '.join(missing))
             sys.exit()
             
         else: # All five pollutants are accounted for
@@ -242,7 +247,7 @@ class emissions:
         # Iterate through the list of potential wrong names, stop if one is found
         for choice in possible_wrong_names:
             if choice in self.emissions_data.columns:
-                print('\n<< Warning: {} was not found in the emissions data. The program will continue using {} as a replacement. >> \n'.format(missing_pol, choice))
+                logging.info('* {} was not found in the emissions data. The program will continue using {} as a replacement.'.format(missing_pol, choice))
                 first_choice = choice
                 break
         
@@ -276,7 +281,7 @@ class emissions:
         else: # Will need to do buffering on all other objects
             # Get just the non-polygon rows    
             if self.verbose:
-                print('<< {} non-polygon emissions sources identified. Adding a 0.005 m buffer to create polygons.'.format(self.geometry.shape[0]-polygons.shape[0]))
+                logging.info('* {} non-polygon emissions sources identified. Adding a 0.005 m buffer to create polygons.'.format(self.geometry.shape[0]-polygons.shape[0]))
             non_polygons = self.geometry[~polygon_filter]
             new_polygons = self.buffer_emis(non_polygons, 0.005)
         
@@ -312,7 +317,7 @@ class emissions:
         groupby_features = ['I_CELL', 'J_CELL', 'HEIGHT_M']+details_to_keep
         emissions_data_clean = emissions_data_tmp.groupby(groupby_features).agg(func)
         if self.verbose:
-            print('- Emissions have been reduced to contain the {} of emissions for each {}'.format(func.__name__, ', '.join(groupby_features)))
+            logging.info('- Emissions have been reduced to contain the {} of emissions for each {}'.format(func.__name__, ', '.join(groupby_features)))
         
         # Clean up indices
         emissions_data_clean = emissions_data_clean.reset_index()
@@ -321,7 +326,7 @@ class emissions:
         scaling_factor = self.convert_units()
         emissions_data_clean[['PM25', 'NH3', 'VOC', 'NOX', 'SOX']] *= scaling_factor
         if scaling_factor != 1.0 and self.verbose:
-            print('- Scaled emissions data by a factor of {:e} to convert from {} to ug/s.'.format(scaling_factor, self.units))
+            logging.info('- Scaled emissions data by a factor of {:e} to convert from {} to ug/s.'.format(scaling_factor, self.units))
         
         # Limit columns
         emissions_data_clean = emissions_data_clean[groupby_features+['PM25', 'NH3', 'VOC', 'NOX', 'SOX']]
@@ -356,9 +361,16 @@ class emissions:
         # Rename emissions column to 'Emissions_ug/s' for easier functionality later
         pollutant_emissions.rename(columns={pollutant:'EMISSIONS_UG/S'}, inplace=True)
         pollutant_emissions.drop(columns=['index'], inplace=True)
+
+        # Prettier pollutant names
+        pollutant_names = {'PM25':'primary PM2.5',
+                           'NH3':'NH3',
+                           'NOX':'NOx',
+                           'VOC':'VOCs',
+                           'SOX':'SOx'}
         
         if self.verbose:
-            print('- Successfully created emissions object for {} for {}.'.format(self.emissions_name, pollutant))
+            logging.info('- Successfully created emissions object for {} for {}.'.format(self.emissions_name, pollutant_names[pollutant]))
         
         return pollutant_emissions
     
