@@ -4,7 +4,7 @@
 Health Impact Function Meta Data Object
 
 @author: libbykoolik
-last modified: 2022-07-05
+last modified: 2022-07-19
 """
 
 # Import Libraries
@@ -14,6 +14,7 @@ import pandas as pd
 import geopandas as gpd
 import numpy as np
 import matplotlib.pyplot as plt
+import logging
 import os
 from os import path
 import sys
@@ -32,12 +33,13 @@ class health_data:
         
     '''
     def __init__(self, filepath_dict, verbose, race_stratified):
-        ''' Initializes the Health Input object'''        
+        ''' Initializes the Health Input object'''   
+        logging.info('\n << Loading BenMAP Health Inputs >>')
         # Get object metadata
         self.filepath_dict = filepath_dict
         self.verbose = verbose
-        verboseprint = print if self.verbose else lambda *a, **k:None # for logging
-        verboseprint('\nDownloading the input data for calculating excess mortality.')
+        verboseprint = logging.info if self.verbose else lambda *a, **k:None # for logging
+        verboseprint('- Downloading the input data for calculating excess mortality.')
         self.race_stratified = race_stratified
 
         # Add source information (hard-coded for now)
@@ -49,12 +51,13 @@ class health_data:
         
         # Initialize object by loading the health data
         self.population, self.incidence = self.load_data()
-        verboseprint('- Population data source: {}. Data successfully imported.'.format(self.population_source))
-        verboseprint('- Incidence data source: {}. Data successfully imported.'.format(self.incidence_source))
+        verboseprint('- Population data (source: {}) successfully imported.'.format(self.population_source))
+        verboseprint('- Incidence data (source: {}) successfully imported.'.format(self.incidence_source))
         
         # Combine the population and incidence data into one dataframe
+        verboseprint('- Combining population and incidence data for health calculations. This step may take some time.')
         self.pop_inc, self.tmp = self.combine_pop_inc()
-        verboseprint('- Population and incidence data succesfully combined.')
+        verboseprint('- Population and incidence data succesfully combined and ready for health calculations.')
             
     def __str__(self):
         return 'Health impact function input population from '+self.population_source+' and incidence from '+self.incidence_source

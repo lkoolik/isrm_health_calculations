@@ -4,7 +4,7 @@
 Tool Utils
 
 @author: libbykoolik
-last modified: 2022-07-06
+last modified: 2022-07-19
 """
 
 #%% Import useful libraries
@@ -17,8 +17,25 @@ import os
 from os import path
 import datetime
 import geopandas as gpd
+import logging
 
 #%% ISRM Tool Utils
+def setup_logging():
+    level = logging.INFO
+    format = ' %(message)s'
+    tmp_logger = os.path.join(os.getcwd(),'tmp.txt')
+    handlers = [logging.FileHandler(tmp_logger), logging.StreamHandler()]
+    logging.basicConfig(level=level, format=format, handlers=handlers)
+    logging.info('╔════════════════════════════════╗')
+    logging.info('║ ISRM Health Calculations Tool  ║')
+    logging.info('║ Version 0.7.0                  ║')
+    logging.info('╚════════════════════════════════╝\n')
+
+    # Suppress all other library warnings and information
+    for key in logging.Logger.manager.loggerDict:
+        logging.getLogger(key).setLevel(logging.CRITICAL)
+    return tmp_logger
+
 def create_output_dir(batch, name):
     ''' Creates the output directory for files generated '''
     # Grab current working directory and the 'outputs' sub folder
@@ -64,7 +81,7 @@ def create_output_dir(batch, name):
     output_dir = os.path.join(parent,sub,outdir)
     
     # Print a statement to tell user where to look for files
-    print("\n<< Output files created will be saved in the following directory: "+output_dir+">>")
+    logging.info("\n << Output files created will be saved in the following directory: "+output_dir+">>")
     
     return output_dir, f_out
 

@@ -4,7 +4,7 @@
 Health Impact Functions
 
 @author: libbykoolik
-last modified: 2022-07-18
+last modified: 2022-07-19
 """
 
 # Import Libraries
@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pyarrow
 from scipy.io import netcdf_file as nf
+import logging
 import os
 from os import path
 import sys
@@ -34,24 +35,37 @@ def krewski(conc, inc, pop, endpoint):
 #%% Main Calculation Functions
 def calculate_excess_mortality(conc, health_data_obj, endpoint, function, verbose):
     ''' Calculate Excess Mortality '''
+    logging.info('- Estimating excess {} mortality from PM2.5. This step may take time.'.format(endpoint.lower()))
+    
     # Get the population-incidence  and total concentration
+    if verbose:
+        logging.info('   - Creating dataframe to combine concentration data with {} mortality BenMAP inputs.'.format(endpoint.lower()))
     conc_hia = conc.detailed_conc_clean[['ISRM_ID','TOTAL_CONC_UG/M3','geometry']].copy()
     pop_inc = health_data_obj.pop_inc.copy().to_crs(conc_hia.crs)
     
     # Merge these on ISRM_ID
     pop_inc_conc = pd.merge(pop_inc, conc_hia[['ISRM_ID','TOTAL_CONC_UG/M3']], on='ISRM_ID')
     
+    if verbose:
+        logging.info('   - Successfully merged concentrations and {} input data.'.format(endpoint.title()))
+        logging.info('   - Estimating {} mortality for each ISRM grid cell.'.format(endpoint.title()))
+        
     # Estimate excess mortality
     pop_inc_conc[endpoint] = pop_inc_conc.apply(lambda x: function(x['TOTAL_CONC_UG/M3'],
                                                                    x[endpoint+' INC'],
                                                                    x['POPULATION'],
                                                                    endpoint), axis=1)
+    if verbose:
+        logging.info('   - Successfully estimated {} mortality for each ISRM grid cell.'.format(endpoint.title()))
+        logging.info('   - Determining excess {} mortality by racial/ethnic group.'.format(endpoint.title()))
     
     # Pivot the dataframe to get races as columns
     pop_inc_conc = pop_inc_conc.pivot_table(index='ISRM_ID',columns='RACE', 
                                             values=endpoint, aggfunc='sum', 
                                             fill_value=0)
-    
+    if verbose:
+        logging.info('   - Performing initial clean up of excess {} mortality data.'.format(endpoint.title()))
+
     # Add geometry back in
     pop_inc_conc = pd.merge(conc_hia, pop_inc_conc, on='ISRM_ID', how='left')
     pop_inc_conc = pop_inc_conc.fillna(0)
@@ -67,24 +81,29 @@ def calculate_excess_mortality(conc, health_data_obj, endpoint, function, verbos
     pop_inc_conc.rename(columns=col_rename_dict, inplace=True)
     
     # Merge the population back in
+    if verbose:
+        logging.info('   - Adding population data back in for per capita calculations.')
+        
     pop = health_data_obj.population.groupby('ROW')[['ASIAN','BLACK','HISLA','INDIG','WHITE','TOTAL']].sum().reset_index()
     pop_inc_conc = pd.merge(pop_inc_conc, pop, left_on='ISRM_ID', right_on='ROW', how='left')
     pop_inc_conc = pop_inc_conc.fillna(0)
     
     # Final Clean Up
+    if verbose:
+        logging.info('   - Performing final clean up.')
+        
     pop_inc_conc = pop_inc_conc[['ISRM_ID', 'TOTAL_CONC_UG/M3', 'ASIAN', 'BLACK', 'HISLA',
                                  'INDIG', 'WHITE', 'TOTAL', endpoint+'_ASIAN', endpoint+'_BLACK', 
                                  endpoint+'_HISLA', endpoint+'_INDIG',endpoint+'_TOTAL', 
                                  endpoint+'_WHITE', 'geometry']]
     
     # Print statement
-    if verbose:
-        print('- {} health impacts calculated.'.format(endpoint.title()))
+    logging.info('   - {} health impacts calculated.'.format(endpoint.title()))
     
     return pop_inc_conc
 
 #%% Formatting and Exporting Functions
-def plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out):
+def plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out, verbose):
     ''' 
     Plots mortality maps and exports as a png. 
     INPUTS:
@@ -94,6 +113,9 @@ def plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out):
         - output_dir: directory to output the plot into
         - f_out: filename
     '''
+    if verbose:
+        logging.info('   - Drawing plot of excess {} mortality from PM2.5 exposure.'.format(endpoint.lower()))
+    
     sns.set_theme(context="notebook", style="whitegrid", font_scale=1.25)
     plt.rcParams['patch.linewidth'] = 0
     plt.rcParams['patch.edgecolor'] = 'none'
@@ -191,10 +213,11 @@ def plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out):
     
     # Export!
     fig.savefig(fpath, dpi=200)
+    logging.info('   - Plot of excess {} mortality from PM2.5 exposure output as {}'.format(endpoint.lower(), fname))
     
     return fname
 
-def export_health_impacts(hia_df, group, endpoint, output_dir, f_out):
+def export_health_impacts(hia_df, group, endpoint, output_dir, f_out, verbose):
     ''' 
     Plots mortality as a shapefile. 
     INPUTS:
@@ -203,6 +226,9 @@ def export_health_impacts(hia_df, group, endpoint, output_dir, f_out):
         - output_dir: directory to output the plot into
         - f_out: filename
     '''
+    if verbose:
+        logging.info('   - Exporting excess {} mortality from PM2.5 exposure as a shapefile.'.format(endpoint.lower()))
+        
     # Create the output file directory and name string
     fname = f_out + '_' + group + '_' + endpoint + '_excess_mortality.shp'
     fname = str.lower(fname)
@@ -233,18 +259,17 @@ def export_health_impacts(hia_df, group, endpoint, output_dir, f_out):
     
     # Export
     hia_df.to_file(fpath)
+    logging.info('   - Excess {} mortality from PM2.5 exposure output as a shapefile as {}'.format(endpoint.lower(), fname))
+    
     return fname
 
 def visualize_and_export_hia(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out, shape_out, verbose):
-    ''' Automates this process a bit '''
+    ''' Automates this process a bit '''    
+    logging.info('- Visualizing and exporting excess {} mortality.'.format(endpoint.lower()))
     # Plot the map of mortality
-    fname = plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out)
-    if verbose:
-        print('- Detailed {} health impact maps output as {}'.format(endpoint.title(), fname))
-        
+    fname = plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out, verbose)
+    
     # Export the shapefile
-    fname = export_health_impacts(hia_df, group, endpoint, shape_out, f_out)
-    if verbose:
-        print('- Detailed {} health impacts output as {}'.format(endpoint.title(), fname))
+    fname = export_health_impacts(hia_df, group, endpoint, shape_out, f_out, verbose)
         
     return #nothing

@@ -4,12 +4,13 @@
 ISRM Data Object
 
 @author: libbykoolik
-last modified: 2022-06-10
+last modified: 2022-07-19
 """
 
 # Import Libraries
 import pandas as pd
 import geopandas as gpd
+import logging
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import netcdf_file as nf
@@ -31,6 +32,8 @@ class isrm:
     '''
     def __init__(self, isrm_fps, isrm_gfp, output_region, region_of_interest, load_file=True, verbose=False):
         ''' Initializes the ISRM object'''        
+        logging.info('<< Reading ISRM Data >>')
+        
         # Initialize paths and check that they are valid
         sys.path.append(os.path.realpath('..'))
         self.nh3_path, self.nox_path, self.pm25_path, self.sox_path, self.voc_path = isrm_fps
@@ -42,15 +45,15 @@ class isrm:
         # Grab other meta-parameters
         self.load_file = load_file
         self.verbose = verbose
-        verboseprint = print if self.verbose else lambda *a, **k:None # for logging
-        verboseprint('\nLoading a new ISRM object.')
+        verboseprint = logging.info if self.verbose else lambda *a, **k:None # for logging
+        verboseprint('- Loading a new ISRM object.')
         
         # If the files do not exist, quit before opening
         if not self.valid_file:
-            print('\n<< ERROR: The filepath provided for the ISRM netCDF is not correct. Please correct and retry. >>')
+            logging.info('\n<< ERROR: The filepath provided for the ISRM netCDF is not correct. Please correct and retry. >>')
             sys.exit()
         elif not self.valid_geo_file:
-            print('\n<< ERROR: The filepath provided for the ISRM boundaries is not correct. Please correct and retry. >>')
+            logging.info('\n<< ERROR: The filepath provided for the ISRM boundaries is not correct. Please correct and retry. >>')
             sys.exit()
         else:
             verboseprint('- Filepaths and files found. Proceeding to import ISRM data.')
@@ -72,6 +75,7 @@ class isrm:
             verboseprint('- Beginning to import ISRM data. This step may take some time.')
             self.PM25, self.NH3, self.NOX, self.SOX, self.VOC = self.load_isrm()
             verboseprint('- ISRM data imported. Five pollutant variables created')
+            logging.info('\n')
             
     
     def __str__(self):
