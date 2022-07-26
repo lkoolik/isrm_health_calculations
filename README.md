@@ -156,16 +156,30 @@ The `concentration_layer` object runs ISRM-based calculations using a single ver
 * `combine_concentrations`: merges together all five of the primary pollutant concentration geodataframes (`pPOL`) and adds them together to get total ground-level concentrations resulting from emissions released in that `layer`
 
 #### `concentration.py` 
-Text goes here
+The `concentration` object runs ISRM-based calculations for each of the vertical layer's of the ISRM grid by processing individual `concentration_layer` objects. The object inputs an emissions object (from `emissions.py`) and the ISRM object (from `isrm.py`). The object then estimates total concentrations at ground-level resulting from emissions.
 
 *Inputs*
-text
+* `emis_obj`: the emissions object, as defined by `emissions.py`
+* `isrm_obj`: the ISRM object, as defined by `isrm.py`
 
 *Attributes*
-text
+* `isrm_id`: a Series of all ISRM grid cell IDs
+* `isrm_geom`: the geometry (geographic attributes) of the ISRM grid
+* `crs`: the coordinate reference system associated with the ISRM grid
+* `name`: a string representing the run name preferred by the user
+* `check`: a Boolean indicating whether the program should run, or if it should just check the inputs (useful for debugging)
+* `verbose`: a Boolean indicating whether the user wants to run in verbose mode
+
+*Calculated Attributes*
+* `detailed_conc`: geodataframe of the detailed concentrations at ground-level combined from all three vertical layers
+* `detailed_conc_clean`: simplified geodataframe of the detailed concentrations at ground-level combined from all three vertical layers
+* `total_conc`: geodataframe with total ground-level PM<sub>2.5</sub> concentrations across the ISRM grid
 
 *Simple Functions*
-text
+* `run_layer`: estimates concentrations for a single layer by creating a `concentration_layer` object for that layer
+* `combine_concentrations`: checks for each of the layer flags in the `emissions` object, and then calls the `run_layer` function for each layer that is flagged. Then, combines the concentrations from each layer flagged into the three concentration geodataframes described above
+* `visualize_concentrations`: draws a map of concentrations for a variable (`var`) and exports it as a PNG into an output directory (`output_dir`) of choice
+* `export_concentrations`: exports concentrations as a shapefile into an output directory (`output_dir`) of choice
 
 #### `control_file.py`
 The `control_file` object is used to check and read the control file for a run:
@@ -208,11 +222,14 @@ The `emissions` object is primarily built off of `geopandas`. It has the followi
 * `crs`: the inherent coordinate reference system associated with the emissions input
 * `emissions_data`: complete, detailed emissions data from the source
 * `emissions_data_clean`: simplified emissions in each grid cell
+
+*Calculated Attributes*
 * `PM25`: primary PM<sub>2.5</sub> emissions in each grid cell
 * `NH3`: ammonia emissions in each grid cell
-* `VOC`: volatile organic compound emissions in each grid cell
-* `NOX`: nitrous oxide emissions in each grid cell
-* `SOX`: sulfur oxide emissions in each grid cell
+* `VOC`: VOC compound emissions in each grid cell
+* `NOX`: NOx emissions in each grid cell
+* `SOX`: SOx emissions in each grid cell
+* `L0_flag`, `L1_flag`, `L2_flag`, `linear_interp_flag`: Booleans indicating whether each layer should be calculated based on emissions release heights
 
 *Simple Functions*
 * `get_file_path`: returns the file path
@@ -220,9 +237,20 @@ The `emissions` object is primarily built off of `geopandas`. It has the followi
 * `get_unit_conversions`: returns two dictionaries of built-in unit conversions
 * `check_path`: uses the `path` library to check if the provided `file_path` exists and if the file is a file
 * `check_units`: checks that the provided units are valid against the `get_unit_conversions` dictionaries
+* `load_emissions`: detects the filetype of the emissions file and calls the appropriate load function
+* `load_shp`: loads the emissions data from a shapefile
+* `check_height`: checks that the height column is present in the emissions file; if not, assumes emissions are released at ground-level
+* `check_emissions`: runs a number of checks on the emissions data to ensure data are valid before running anything
+* `map_pollutant_names`: replaces pollutant names if they are not found in the emissions data based on near-misses (e.g., PM2.5 for PM25)
+* `filter_emissions`: filters the emissions based on the `filter_dict` input
+* `check_geo_types`: checks what geometries are present in the emissions shapefile (e.g., points, polygons, multipolygons); if points exist, uses `buffer_emis` to convert to polygons
+* `buffer_emis` converts points to polygons by adding a buffer of `dist` 
+* `clean_up`: simplifies the emissions data by removing unnecessary dimensions, converting units as appropriate, and updating the column names
 * `convert_units`: converts units from provided units to μg/s using the unit dictionaries built-in
+* `split_polutants`: converts the emissions layer into separate objects for each pollutant
+* `which_layers`: determines the `L0_flag`, `L1_flag`, `L2_flag`, and `linear_interp_flag` variables based on the HEIGHT column of the emissions data
 * `visualize_emissions`: creates a simple map of emissions for a provided pollutant
-* `buffer_emis`: adds a buffer of distance `dist` to the emissions geography
+* `get_pollutant_layer`: pulls a single pollutant layer based on `pol_name`
 
 #### `health_data.py` 
 Text goes here
