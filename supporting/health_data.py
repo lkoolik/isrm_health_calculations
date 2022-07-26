@@ -30,6 +30,14 @@ class health_data:
               (1) POPULATION
               (2) INCIDENCE
         - verbose: a Boolean enabling more detailed output statements
+        - race_stratified: Boolean indicating whether race-stratified incidence
+          rates should be used
+          
+    CALCULATES:
+        - population: a geodataframe containing the raw population data from BenMAP
+        - incidence: a geodataframe containing the raw incidence data from BenMAP
+        - pop_inc: a geodataframe containing the combined population and incidence 
+          data based on the requested geographies
         
     '''
     def __init__(self, filepath_dict, verbose, race_stratified):

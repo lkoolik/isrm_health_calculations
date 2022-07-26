@@ -26,10 +26,22 @@ from emissions import emissions
 #%% Define the Concentration Layer Object
 class concentration_layer:
     '''
-    Defines a new object for storing and manipulating concentration data.
+    Defines a new object for storing and manipulating concentration data for a single layer of the ISRM.
     
     INPUTS:
-        - tbd
+        - emis_obj: an emissions object
+        - isrm_obj: an ISRM object
+        - layer: the vertical layer of the ISRM grid to use
+        - run_calcs: whether calculations should be run or just checked
+        - verbose: whether the tool should return more logging statements
+        
+    CALCULATES:
+        - PM25e, NH3e, VOCe, NOXe, SOXe: geodataframes of the emissions (for each pollutant) 
+          from that layer re-allocated onto the ISRM grid
+        - pPM25, pNH4, pVOC, pNO3, pSO4: geodataframes of the concentrations from each primary 
+          pollutant from the emissions of that pollutant in that layer
+        - detailed_conc: geodataframe containing columns for each primary pollutant's 
+          contribution to the total ground-level PM2.5 concentrations
         
     '''
     def __init__(self, emis_obj, isrm_obj, layer, run_calcs=True, verbose=False):

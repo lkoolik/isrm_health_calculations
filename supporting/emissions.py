@@ -31,6 +31,20 @@ class emissions:
         - load_file: set to True to import emissions, otherwise will just run checks
         - verbose: enable for more detailed outputs
         
+    CALCULATES:
+        - PM25: primary PM2.5 emissions in each grid cell
+        - NH3: ammonia emissions in each grid cell
+        - VOC: VOC compound emissions in each grid cell
+        - NOX: NOx emissions in each grid cell
+        - SOX: SOx emissions in each grid cell
+        - L0_flag, L1_flag, L2_flag, linear_interp_flag: Booleans indicating whether 
+          each layer should be calculated based on emissions release heights
+          
+    EXTERNAL FUNCTIONS:
+        - get_pollutant_layer: pulls a single pollutant layer based on pol_name
+        - visualize_emissions: creates a simple map of emissions for a provided 
+          pollutant
+
     '''
     def __init__(self, file_path, units='ug/s', name='', details_to_keep=[], filter_dict={}, load_file=True, verbose=False):
         ''' Initializes the emissions object'''     
