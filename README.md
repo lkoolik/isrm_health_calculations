@@ -336,10 +336,68 @@ The `population` object stores detailed Census tract-level population data for t
 To streamline calculations and increase functionality of the code, python scripts were created for major calculations/operations. Scripts are saved in the `scripts` folder of the repository. The following sections outline the contents of each script file, and how the functions inside them work.
 
 #### `environmental_justice_calcs.py` 
-Text goes here
+The `environmental_justice_calcs` script file contains a number of functions that help calculate exposure metrics for environmental justice analyses.
 
-*Function #1*
-text
+1. `create_exposure_df`
+   1. Inputs:
+      * `conc`: concentration object from `concentration.py`
+      * `isrm_pop_alloc`: population object (from `population.py`) re-allocated to the ISRM grid cell geometry
+      * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed
+   2. Outputs
+      * `exposure_gdf`: a geodataframe with the exposure concentrations and allocated population by racial group
+   3. Methodology:
+      1. Pulls the total concentration from the concentration object
+      2. Grabs the population by racial/ethnic group from the population object
+      3. Merges the concentration and population data based on the ISRM ID
+      4. Adds the population weighted mean exposure as a column of the geodataframe using `add_pwm_col`
+2. `add_pwm_col`
+   1. Inputs:
+      * asdfasdf
+   2. Outputs:
+      * asdfasdf
+   3. Methodology:
+      * asdf
+      * asdf
+3. `get_pwm`
+   1. Inputs:
+      * asdfasdf
+   2. Outputs:
+      * asdfasdf
+   3. Methodology:
+      * asdf
+      * asdf
+4. `get_overall_disparity`
+   1. Inputs:
+      * asdfasdf
+   2. Outputs:
+      * asdfasdf
+   3. Methodology:
+      * asdf
+      * asdf
+5. `estimate_exposure_percentile`
+   1. Inputs:
+      * asdfasdf
+   2. Outputs:
+      * asdfasdf
+   3. Methodology:
+      * asdf
+      * asdf
+6. `run_exposure_calcs`
+   1. Inputs:
+      * asdfasdf
+   2. Outputs:
+      * asdfasdf
+   3. Methodology:
+      * asdf
+      * asdf
+7. `plot_percentile_exposure`
+   1. Inputs:
+      * asdfasdf
+   2. Outputs:
+      * asdfasdf
+   3. Methodology:
+      * asdf
+      * asdf
 
 #### `health_impact_calcs.py` 
 Text goes here
