@@ -213,7 +213,7 @@ The `emissions` object is primarily built off of `geopandas`. It has the followi
 * `load_file`: a Boolean indicating whether or not the file should be loaded (for debugging)
 * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed
 
-*Emissions Attributes*
+*Attributes*
 * `valid_file`: a Boolean indicating whether or not the file provided is valid
 * `valid_units`: a Boolean indicating whether or not emissions units are compatible with the program
 * `valid_emissions`: a Boolean indicating whether or not emissions passed required tests
@@ -253,16 +253,31 @@ The `emissions` object is primarily built off of `geopandas`. It has the followi
 * `get_pollutant_layer`: pulls a single pollutant layer based on `pol_name`
 
 #### `health_data.py` 
-Text goes here
+The `health_data` object stores and manipulates built-in health data (population and incidence rates) from BenMAP. It inputs a dictionary of filepaths and two Boolean run options (`verbose` and `race_stratified`) to return dataframes of population, incidence, and combined population-incidence information (`pop_inc`).
 
 *Inputs*
-text
+* `filepath_dict`: a dictionary with the filepaths of each input feather file, which must have "POPULATION" and "INCIDENCE" as keys
+* `verbose`: a Boolean indicating whether or not detailed logging statements should be printed
+* `race_stratified`: a Boolean indicating whether race-stratified incidence rates should be used
 
 *Attributes*
-text
+* `population_source`: string containing the source of the population data
+* `incidence_source`: string containing the source of the incidence data
+
+*Calculated Attributes*
+* `population`: a geodataframe containing the raw population data from BenMAP
+* `incidence`: a geodataframe containing the raw incidence data from BenMAP
+* `pop_inc`: a geodataframe containing the combined population and incidence data based on the requested geographies
 
 *Simple Functions*
-text
+* `load_data`: reads in the population and incidence data from feather files
+* `update_pop`: updates the population dataset by melting (unpivot) and renaming columns
+* `update_inc`: updates the incidence dataset by pivoting columns around endpoints and renaming columns
+* `get_incidence_lookup`: creates a small incidence lookup table based on the name and age ranges
+* `get_incidence_pop`: helper function that returns the incidence for a given name, race, age range, and endpoint
+* `make_incidence_lookup`: creates a lookup dictionary using the `get_incidence_pop` function for each endpoint
+* `incidence_by_age`: creates a smaller incidence table for merging by calling `get_incidence_lookup` for each endpoint
+* `combine_pop_inc`: creates the `pop_inc` dataframe by doing a spatial merge on the population and incidence data and then using lookup tables to determine the appropriate values
 
 #### `isrm.py` 
 Text goes here
