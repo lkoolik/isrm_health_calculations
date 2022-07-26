@@ -4,12 +4,13 @@
 Population Data Object
 
 @author: libbykoolik
-last modified: 2022-05-04
+last modified: 2022-07-19
 """
 
 # Import Libraries
 import pandas as pd
 import geopandas as gpd
+import logging
 import numpy as np
 import matplotlib.pyplot as plt
 import pyarrow
@@ -29,28 +30,28 @@ class population:
     '''
     def __init__(self, file_path, load_file=True, verbose=False):
         ''' Initializes the Population object'''        
+        logging.info('\n << Reading Population Census Data for EJ Exposure Calculations >>')
         
         # Gather meta data
         self.file_path = file_path
         self.file_type = file_path.split('.')[-1].lower()
         self.load_file = load_file
         self.verbose = verbose
-        verboseprint = print if self.verbose else lambda *a, **k:None # for logging
-        verboseprint('\nCreating a new population object from {}'.format(self.file_path))
+        verboseprint = logging.info if self.verbose else lambda *a, **k:None # for logging
+        verboseprint('- Creating a new Census Tract population object from {}'.format(self.file_path))
         
         # Initialize population object by reading in the feather file
         self.valid_file = self.check_path()
         
         if not self.valid_file:
-            print('\n<< ERROR: The filepath provided is not correct. Please correct and retry. >>')
+            logging.info('\n << ERROR: The filepath provided is not correct. Please correct and retry. >>')
             sys.exit()
         
         # Read in the data
         if self.load_file == True and self.valid_file:
             verboseprint('- Attempting to load the population data. This step may take some time.')
             self.geometry, self.pop_data, self.crs, self.pop_gdf = self.load_population()
-            verboseprint('- Population successfully loaded.')
-        
+            verboseprint('- Population successfully loaded.')        
             
     def __str__(self):
         return '< Population object for year '+str(self.year)+ '>'
@@ -106,6 +107,9 @@ class population:
     
     def allocate_population(self, new_geometry, new_geometry_ID):
         ''' Reallocates the population into the new geometry using a spatial intersect '''
+        if self.verbose:
+            logging.info('- Allocating population from Census tracts to ISRM grid cells.')
+        
         # Confirm that the coordinate reference systems match
         #assert pop_tmp.crs == new_geometry.crs, 'Coordinate reference system does not match. Population cannot be reallocated'
         if self.crs == new_geometry.crs:
@@ -147,5 +151,9 @@ class population:
         
         for c in cols:
             assert np.isclose(old_pop_total[c], new_pop_total[c])
+        
+        # Print statement
+        if self.verbose:
+            logging.info('- Census tract population data successfully re-allocated to the ISRM grid.')
         
         return new_alloc_pop

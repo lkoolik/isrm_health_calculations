@@ -4,7 +4,7 @@
 Concentration Layer Data Object
 
 @author: libbykoolik
-last modified: 2022-06-09
+last modified: 2022-07-19
 """
 
 # Import Libraries
@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 from scipy.io import netcdf_file as nf
 import os
 from os import path
+import logging
 import sys
 sys.path.append('/Users/libbykoolik/Documents/Research/OEHHA Project/scripts/isrm_health_calculations/supporting')
 from isrm import isrm
@@ -47,28 +48,28 @@ class concentration_layer:
         self.verbose = verbose
         
         # Print a few things for logging purposes
-        print('\nEstimating concentrations from layer {} of the ISRM.'.format(self.layer))
-        verboseprint = print if self.verbose else lambda *a, **k:None # for logging
-        verboseprint('- Creating a new concentration object for layer {}'.format(self.layer))
+        logging.info('- Estimating concentrations from layer {} of the ISRM.'.format(self.layer))
+        verboseprint = logging.info if self.verbose else lambda *a, **k:None # for logging
+        verboseprint('   - Creating a new concentration object for layer {}'.format(self.layer))
         
         # Run concentration calculations
         if run_calcs:
             # Allocate emissions to the ISRM grid
-            verboseprint('- Reallocating emissions to the ISRM grid.')
+            verboseprint('   - Reallocating emissions to the ISRM grid.')
             self.PM25e, self.NH3e, self.VOCe, self.NOXe, self.SOXe = self.process_emissions(self.emissions, self.isrm)
         
             # Estimate concentrations
-            verboseprint('- Calculating concentrations of PM25 from each pollutant.')
+            verboseprint('   - Calculating concentrations of PM25 from each pollutant.')
             self.pPM25 = self.get_concentration(self.PM25e, self.isrm.get_pollutant_layer('PM25'), self.layer)
-            verboseprint('- Concentrations estimated from primary PM2.5.')
+            verboseprint('      - Concentrations estimated from primary PM2.5.')
             self.pNH4 = self.get_concentration(self.NH3e, self.isrm.get_pollutant_layer('NH3'), self.layer)
-            verboseprint('- Concentrations estimated from ammonia.')
+            verboseprint('      - Concentrations estimated from NH3.')
             self.pVOC = self.get_concentration(self.VOCe, self.isrm.get_pollutant_layer('VOC'), self.layer)
-            verboseprint('- Concentrations estimated from organics.')
+            verboseprint('      - Concentrations estimated from VOCs.')
             self.pNO3 = self.get_concentration(self.NOXe, self.isrm.get_pollutant_layer('NOX'), self.layer)
-            verboseprint('- Concentrations estimated from nitrous oxides.')
+            verboseprint('      - Concentrations estimated from NOx.')
             self.pSO4 = self.get_concentration(self.SOXe, self.isrm.get_pollutant_layer('SOX'), self.layer)
-            verboseprint('- Concentrations estimated from sulfur oxides.')
+            verboseprint('      - Concentrations estimated from SOx.')
     
             # Add these together at each ISRM grid cell
             self.detailed_conc = self.combine_concentrations(self.pPM25,
@@ -76,7 +77,7 @@ class concentration_layer:
                                                               self.pVOC,
                                                               self.pNO3,
                                                               self.pSO4)
-            verboseprint('- Detailed concentrations are estimated from layer {}.'.format(self.layer))
+            verboseprint('   - Detailed concentrations are estimated from layer {}.'.format(self.layer))
             
     def __str__(self):
         return 'Concentration layer object created from the emissions from '+self.name + ' and the ISRM grid.'

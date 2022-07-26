@@ -4,7 +4,7 @@
 Total Concentration Data Object
 
 @author: libbykoolik
-last modified: 2022-06-09
+last modified: 2022-07-19
 """
 
 # Import Libraries
@@ -16,6 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.io import netcdf_file as nf
+import logging
 import os
 from os import path
 import sys
@@ -35,7 +36,7 @@ class concentration:
     '''
     def __init__(self, emis_obj, isrm_obj, run_calcs=True, verbose=False):
         ''' Initializes the Concentration object'''        
-        print('\nEstimating concentrations from provided emissions using the ISRM.')
+        logging.info('<< Estimating concentrations from provided emissions using the ISRM. >>')
         # Initialize concentration object by reading in the emissions and isrm 
         self.emissions = emis_obj
         self.isrm = isrm_obj
@@ -46,13 +47,14 @@ class concentration:
         self.crs = self.isrm.crs
         self.name = self.emissions.emissions_name
         self.verbose = verbose
-        verboseprint = print if self.verbose else lambda *a, **k:None # for logging
-        verboseprint('\nCreating a new concentration object')
+        verboseprint = logging.info if self.verbose else lambda *a, **k:None # for logging
+        verboseprint('- Creating a new concentration object')
                 
         # Run concentration calculations
         if run_calcs:
             self.detailed_conc, self.detailed_conc_clean, self.total_conc = self.combine_concentrations()
-            verboseprint('\nTotal concentrations are now ready.')
+            verboseprint('- Total concentrations are now ready.')
+            logging.info('\n')
             
     def __str__(self):
         return 'Concentration object created from the emissions from '+self.name + ' and the ISRM grid.'
@@ -110,6 +112,9 @@ class concentration:
     def visualize_concentrations(self, var, output_region, output_dir, f_out, ca_shp_fp, export=False):
         ''' Creates map of concentrations using simple chloropleth '''
         # Note to build this out further at some point in the future, works for now
+        if self.verbose:
+            logging.info('- Drawing map of total PM2.5 concentrations.')
+        
         # Read in CA boundary
         ca_shp = gpd.read_feather(ca_shp_fp)
         ca_prj = ca_shp.to_crs(self.crs)
@@ -156,13 +161,15 @@ class concentration:
         ax.yaxis.set_visible(False)
         fig.tight_layout()
         
-        if export: 
+        if export:
+            logging.info('   - Exporting a map of total PM2.5 concentrations as a png.')
             fig.savefig(fpath, dpi=200)
+            logging.info('   - Map of concentrations output as {}'.format(fname))
         return
 
     def export_concentrations(self, output_dir, f_out, detailed=False,):
         ''' Exports concentration as a shapefile (detailed or total) '''
-        
+        logging.info('- Exporting concentrations as a shapefile.')
         # If detailed flag is True, export detailed shapefile
         if detailed:
             fname = f_out + '_detailed_concentration.shp' # File Name
@@ -177,7 +184,7 @@ class concentration:
             
             # Export
             gdf_export.to_file(fpath)
-            print('- Detailed concentrations output as {}'.format(fname))
+            logging.info('   - Detailed concentrations output as {} >>'.format(fname))
             
         # If detailed flag is False, export only total concentration shapefile
         else:
@@ -190,6 +197,6 @@ class concentration:
             
             # Export
             gdf_export.to_file(fpath)
-            print('- Total concentrations output as {}'.format(fname))
+            logging.info('   - Total concentrations output as {}'.format(fname))
         
         return

@@ -4,12 +4,13 @@
 EJ Functions
 
 @author: libbykoolik
-last modified: 2022-05-04
+last modified: 2022-07-19
 """
 
 # Import Libraries
 import pandas as pd
 import geopandas as gpd
+import logging
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -20,7 +21,7 @@ from os import path
 import sys
 
 #%%
-def create_exposure_df(conc, isrm_pop_alloc):
+def create_exposure_df(conc, isrm_pop_alloc, verbose):
     ''' Create an exposure geodataframe from concentration and population '''
     # Pull the total concentration from the conc object
     conc_gdf = conc.total_conc.copy()
@@ -34,6 +35,8 @@ def create_exposure_df(conc, isrm_pop_alloc):
     exposure_gdf = pd.merge(conc_gdf, isrm_pop_alloc, left_on='ISRM_ID', right_on='ISRM_ID')
     
     # Get PWM columns per group
+    if verbose:
+        logging.info('- Estimating population weighted mean exposure for each demographic group.')
     for group in groups:
         exposure_gdf = add_pwm_col(exposure_gdf, group)
         
@@ -76,8 +79,11 @@ def get_overall_disparity(exposure_gdf):
     
     return pwm_df
 
-def estimate_exposure_percentile(exposure_gdf):
+def estimate_exposure_percentile(exposure_gdf, verbose):
     ''' Creates a dataframe of percentiles '''
+    if verbose:
+        logging.info('- Estimating the exposure level for each percentile of each demographic group population.')
+    
     # Define racial/ethnic groups of interest
     groups = ['TOTAL', 'ASIAN', 'BLACK', 'HISLA', 'INDIG', 'PACIS', 'WHITE','OTHER']
     
@@ -104,8 +110,18 @@ def estimate_exposure_percentile(exposure_gdf):
     
     return df_pctl
 
-def plot_percentile_exposure(output_dir, f_out, df_pctl):
+def run_exposure_calcs(conc, pop_alloc, verbose):
+    ''' Run the exposure EJ calculations from one script '''
+    exposure_gdf = create_exposure_df(conc, pop_alloc, verbose)
+    exposure_disparity = get_overall_disparity(exposure_gdf)
+    exposure_pctl = estimate_exposure_percentile(exposure_gdf, verbose)
+    
+    return exposure_pctl, exposure_disparity 
+
+def plot_percentile_exposure(output_dir, f_out, df_pctl, verbose):
     ''' Creates a percentile plot by group '''
+    if verbose:
+        logging.info('- Drawing plot of exposure by percentile of each racial/ethnic group.')
     # Define racial/ethnic groups of interest
     groups = ['TOTAL', 'ASIAN', 'BLACK', 'HISLA', 'INDIG', 'PACIS', 'WHITE','OTHER']
     
@@ -135,5 +151,6 @@ def plot_percentile_exposure(output_dir, f_out, df_pctl):
     fname =f_out+'_PM25_Exposure_Percentiles.png' # File Name
     fpath = os.path.join(output_dir, fname)
     fig.savefig(fpath, dpi=200)
+    logging.info('- Exposure concentration by percentile figure output as {}'.format(fname))
     
     return
