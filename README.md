@@ -312,16 +312,25 @@ The `isrm` object loads, stores, and manipulates the ISRM grid data.
 * `map_isrm`: simple function for mapping the ISRM grid cells
 
 #### `population.py` 
-Text goes here
+The `population` object stores detailed Census tract-level population data for the environmental justice exposure calculations.
 
 *Inputs*
-text
+* `file_path`: the file path of the raw population data
+* `load_file`: a Boolean indicating whether or not the file should be loaded (for debugging)
+* `verbose`: a Boolean indicating whether or not detailed logging statements should be printed
 
 *Attributes*
-text
+* `valid_file`: a Boolean indicating whether or not the file provided is valid
+* `geometry`: geospatial information associated with the emissions input
+* `pop_data`: complete, detailed population data from the source
+* `crs`: the inherent coordinate reference system associated with the emissions input
+* `pop_gdf`: a geodataframe containing the population information with associated spatial information
 
 *Simple Functions*
-text
+* `check_path`: checks to see if the file exists at the path specified and returns whether the file is valid
+* `load_population`: loads the population data based on the file extension
+* `load_feather`: loads the population feather data using geopandas and post-processes
+* `allocate_population`: reallocates population into new geometry using a spatial intersect
 
 ### Scripts
 To streamline calculations and increase functionality of the code, python scripts were created for major calculations/operations. Scripts are saved in the `scripts` folder of the repository. The following sections outline the contents of each script file, and how the functions inside them work.
