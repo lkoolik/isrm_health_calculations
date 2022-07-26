@@ -24,11 +24,28 @@ class isrm:
     Defines a new object for storing and manipulating ISRM data.
     
     INPUTS:
-        - file_path: file path to the ISRM grid NetCDF file (underlying data)
-        - geo_file_path: file path to the shapefile of geographic information
-        - load_file: set to True to import emissions, otherwise will just run checks
-        - verbose: a Boolean enabling more detailed output statements 
+        - isrm_fps: a list of filepath strings for the NH3, NOx, PM25, SOX, 
+          and VOC paths, respectively
+        - isrm_gfp: a filepath string for the geometry feather of the ISRM grid
+        - output_region: a geodataframe of the region for results to be output, 
+          as calculated by get_output_region in tool_utils.py
+        - region_of_interest: the name of the region contained in the output_region
+        - load_file: a Boolean indicating whether or not the file should be 
+          loaded (for debugging)
+        - verbose: a Boolean indicating whether or not detailed logging statements 
+          should be printed
+          
+    CALCULATES:
+        - receptor_IDs: the IDs associated with ISRM receptors within the output_region
+        - receptor_geometry: the geospatial information associated with the ISRM 
+          receptors within the output_region
+        - PM25, NH3, NOx, SOX, VOC: the ISRM matrices for each of the primary 
+          pollutants
         
+    EXTERNAL FUNCTIONS:
+        - get_pollutant_layer: returns the ISRM matrix for a single pollutant
+        - map_isrm: simple function for mapping the ISRM grid cells
+    
     '''
     def __init__(self, isrm_fps, isrm_gfp, output_region, region_of_interest, load_file=True, verbose=False):
         ''' Initializes the ISRM object'''        
@@ -134,7 +151,7 @@ class isrm:
         return pollutants
     
     def load_geodata(self):
-        ''' Loads shapefile into geopandas dataframe '''
+        ''' Loads feather into geopandas dataframe '''
         isrm_gdf = gpd.read_feather(self.geo_file_path)
         isrm_gdf.columns = ['ISRM_ID', 'geometry']
         
