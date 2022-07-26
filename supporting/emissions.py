@@ -24,7 +24,7 @@ class emissions:
     Defines a new object for storing and manipulating emissions data.
     
     INPUTS:
-        - file_path: File path to an emissions file (currently allows .shp only)
+        - file_path: File path to an emissions file (allows .shp and .feather only)
         - units: Units of the emissions file (default is ug/s)
         - name: plain English tag for emissions, otherwise will use the filename
         - details_to_keep: any additional aggregation field (e.g., FUEL_TYPE)
