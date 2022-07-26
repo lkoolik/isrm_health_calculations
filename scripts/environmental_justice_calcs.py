@@ -22,7 +22,21 @@ import sys
 
 #%%
 def create_exposure_df(conc, isrm_pop_alloc, verbose):
-    ''' Create an exposure geodataframe from concentration and population '''
+    ''' 
+    Create an exposure geodataframe from concentration and population.
+    
+    INPUTS:
+        - conc: concentration object
+        - isrm_pop_alloc: population object re-allocated to the ISRM grid cell 
+          geometry
+        - verbose: a Boolean indicating whether or not detailed logging statements 
+          should be printed
+          
+    OUTPUTS:
+        - exposure_gdf: a geodataframe with the exposure concentrations and allocated 
+          population by racial group
+    
+    '''
     # Pull the total concentration from the conc object
     conc_gdf = conc.total_conc.copy()
     conc_gdf.columns = ['ISRM_ID', 'geometry', 'PM25_UG_M3']
