@@ -159,8 +159,10 @@ class emissions:
         if self.file_type == 'shp':
             geometry, emissions_data, crs = self.load_shp()
         
+        if self.file_type == 'feather':
+            geometry, emissions_data, crs = self.load_feather()
+            
         return geometry, emissions_data, crs
-
                 
     def load_shp(self):
         ''' 
@@ -173,6 +175,28 @@ class emissions:
         '''
         # Shapefiles are read using geopandas
         emissions_gdf = gpd.read_file(self.file_path)
+        
+        # Split off geometry from emissions data
+        geometry = emissions_gdf[['I_CELL','J_CELL','geometry']]\
+            .copy().drop_duplicates().reset_index(drop=True)
+        emissions_data = pd.DataFrame(emissions_gdf.drop(columns='geometry'))
+        
+        # Separately save the coordinate reference system
+        crs = emissions_gdf.crs
+        
+        return geometry, emissions_data, crs
+    
+    def load_feather(self):
+        ''' 
+        Loads emissions data from a feather.
+        
+        Requirements:
+            - Emissions data must have the columns I_CELL and J_CELL that should be uniquely 
+            indexed to spatial information
+        
+        '''
+        # Feathers are read using geopandas
+        emissions_gdf = gpd.read_feather(self.file_path)
         
         # Split off geometry from emissions data
         geometry = emissions_gdf[['I_CELL','J_CELL','geometry']]\
