@@ -338,7 +338,7 @@ To streamline calculations and increase functionality of the code, python script
 #### `environmental_justice_calcs.py` 
 The `environmental_justice_calcs` script file contains a number of functions that help calculate exposure metrics for environmental justice analyses.
 
-1. `create_exposure_df`
+1. `create_exposure_df`: creates a dataframe ready for exposure calculations
    1. Inputs:
       * `conc`: concentration object from `concentration.py`
       * `isrm_pop_alloc`: population object (from `population.py`) re-allocated to the ISRM grid cell geometry
@@ -350,39 +350,53 @@ The `environmental_justice_calcs` script file contains a number of functions tha
       2. Grabs the population by racial/ethnic group from the population object
       3. Merges the concentration and population data based on the ISRM ID
       4. Adds the population weighted mean exposure as a column of the geodataframe using `add_pwm_col`
-2. `add_pwm_col`
+2. `add_pwm_col`: adds an intermediate column that multiplies population by exposure concentration
    1. Inputs:
-      * asdfasdf
+      * `exposure_gdf`: a geodataframe with the exposure concentrations and allocated population by racial group
+      * `group`: the racial/ethnic group name
    2. Outputs:
-      * asdfasdf
+      * `exposure_gdf`: a geodataframe with the exposure concentrations and allocated population by racial group, now with PWM column
    3. Methodology:
-      * asdf
-      * asdf
-3. `get_pwm`
+      1. Creates a column called `group`+'_PWM'.
+      2. Multiplies exposure concentration by `group` population
+      3. Returns the new dataframe
+   4. Important Notes:
+      * The new column is not actually a population-weighted mean, it is just an intermediate for calculating PWM in the next step.
+3. `get_pwm`: estimates the population-weighted mean exposure for a given group
    1. Inputs:
-      * asdfasdf
+      * `exposure_gdf`: a geodataframe with the exposure concentrations and allocated population by racial group
+      * `group`: the racial/ethnic group name
    2. Outputs:
-      * asdfasdf
+      * `PWM_group`: the group-level population weighted mean exposure concentration (float)
    3. Methodology:
-      * asdf
-      * asdf
-4. `get_overall_disparity`
+      1. Creates a variable for the group PWM column (as created in `add_pwm_col`
+      2. Estimates PWM by adding across the `group`_PWM column and dividing by the total `group` population
+4. `get_overall_disparity`: returns a table of overall disparity metrics by racial/ethnic group
    1. Inputs:
-      * asdfasdf
+      * `exposure_gdf`: a geodataframe with the exposure concentrations and allocated population by racial group
    2. Outputs:
-      * asdfasdf
+      * `pwm_df`: a dataframe containing the PWM, absolute disparity, and relative disparity of each group
    3. Methodology:
-      * asdf
-      * asdf
-5. `estimate_exposure_percentile`
+      1. Creates an empty dataframe with the groups as rows
+      2. Estimates the group population weighted mean using the `get_pwm` function
+      3. Estimates the absolute disparity as `Group_PWM` - `Total_PWM`
+      4. Estimates the relative disparity as the `Absolute Disparity`/`Total_PWM`
+5. `estimate_exposure_percentile`: creates a dataframe of exposure percentiles for plotting
    1. Inputs:
-      * asdfasdf
+      * `exposure_gdf`: a geodataframe with the exposure concentrations and allocated population by racial group
+      * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed
    2. Outputs:
-      * asdfasdf
+      * `df_pctl`: a dataframe of exposure concentrations by percentile of population exposed by group
    3. Methodology:
-      * asdf
-      * asdf
-6. `run_exposure_calcs`
+      1. Creates a copy of the `exposure_gdf` dataframe to prevent writing over the original.
+      2. Sorts the dataframe by PM2.5 concentration and resets the index.
+      3. Iterates through each racial/ethnic group, performing the following:
+         1. Creates a small slice of the dataframe that is only the exposure concentration and the `group`.
+         2. Estimates the cumulative sum of population in the sorted dataframe.
+         3. Estimates the total population of the `group`.
+         4. Estimates percentile as the population in the grid cell divided by the total population of the `group`.
+         5. Adds the percentile column into the main dataframe.
+6. `run_exposure_calcs`: r
    1. Inputs:
       * asdfasdf
    2. Outputs:
