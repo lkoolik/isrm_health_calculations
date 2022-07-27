@@ -40,7 +40,7 @@ class control_file:
                          'EMISSIONS_UNITS', 'RUN_HEALTH', 'RACE_STRATIFIED_INCIDENCE',
                          'CHECK_INPUTS','VERBOSE',
                          'REGION_OF_INTEREST','REGION_CATEGORY','OUTPUT_RESOLUTION',
-                         'OUTPUT_PWM']
+                         'OUTPUT_EXPOSURE']
         self.blanks_okay = [True, True, False, 
                             False, True, True, 
                             True, True,
@@ -55,7 +55,7 @@ class control_file:
             
         # If checks are good, import values
         if self.valid_structure and self.no_incorrect_blanks and self.valid_file:
-            self.batch_name, self.run_name, self.emissions_path, self.emissions_units, self.run_health, self.race_stratified, self.check, self.verbose, self.region_of_interest, self.region_category, self.output_resolution, self.output_pwm = self.get_all_inputs()
+            self.batch_name, self.run_name, self.emissions_path, self.emissions_units, self.run_health, self.race_stratified, self.check, self.verbose, self.region_of_interest, self.region_category, self.output_resolution, self.output_exposure = self.get_all_inputs()
             self.valid_inputs = self.check_inputs()
             if self.valid_inputs:
                 logging.info('\n << Control file was successfully imported and inputs are correct >>')
@@ -160,7 +160,7 @@ class control_file:
         region_of_interest = self.get_input_value('REGION_OF_INTEREST', upper=True)
         region_category = self.get_input_value('REGION_CATEGORY', upper=True)
         output_resolution = self.get_input_value('OUTPUT_RESOLUTION', upper=True)
-        output_pwm = self.get_input_value('OUTPUT_PWM', upper=True)
+        output_exposure = self.get_input_value('OUTPUT_EXPOSURE', upper=True)
         
         # For HEALTH RUN CONTROLS, assume something if no value is given
         if run_health == '':
@@ -202,14 +202,14 @@ class control_file:
             logging.info('* No value provided for the OUTPUT_RESOLUTION field. Assuming ISRM grid cells.')
             output_resolution = 'ISRM'
             
-        # for OUTPUT_PWM, check if blank, otherwise map the Y/N
-        if output_pwm == '':
-            logging.info('* No value provided for the OUTPUT_PWM field. Assuming output is desired.')
-            output_pwm = True
+        # for OUTPUT_EXPOSURE, check if blank, otherwise map the Y/N
+        if output_exposure == '':
+            logging.info('* No value provided for the OUTPUT_EXPOSURE field. Assuming output is desired.')
+            output_exposure = True
         else:
-            output_pwm = mapper[output_pwm]
+            output_exposure = mapper[output_exposure]
         
-        return batch_name, run_name, emissions_path, emissions_units, run_health, race_stratified, check, verbose, region_of_interest, region_category, output_resolution, output_pwm
+        return batch_name, run_name, emissions_path, emissions_units, run_health, race_stratified, check, verbose, region_of_interest, region_category, output_resolution, output_exposure
     
     def get_region_dict(self):
         ''' Hard-coded dictionary of acceptable values for regions '''
@@ -366,15 +366,15 @@ class control_file:
         valid_output_resolution = self.output_resolution in valid_output_resolutions
         logging.info('* The output resolution provided is not valid. Valid options include: '+', '.join(valid_output_resolutions)) if not valid_output_resolution else ''
         
-        ## (9) Check the output_pwm variable
-        valid_output_pwm = type(self.output_pwm) == bool
-        logging.info('* The OUTPUT_PWM provided is not valid. Use Y or N or leave blank.') if not valid_output_pwm else ''
+        ## (9) Check the output_exposure variable
+        valid_output_exp= type(self.output_exposure) == bool
+        logging.info('* The OUTPUT_EXPOSURE provided is not valid. Use Y or N or leave blank.') if not valid_output_exp else ''
         
         ## Output only one time
         valid_inputs = valid_batch_name and valid_run_name and valid_emissions_path and \
             valid_emissions_units and valid_run_health and valid_inc_choice and \
                 valid_check and valid_verbose and valid_region_category and \
                     valid_region_of_interest and valid_output_resolution and \
-                        valid_output_pwm
+                        valid_output_exp
 
         return valid_inputs
