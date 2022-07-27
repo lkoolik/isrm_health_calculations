@@ -4,7 +4,7 @@
 Main Run File
 
 @author: libbykoolik
-Last updated: 2022-07-19
+Last updated: 2022-07-27
 """
 #%% Import useful libraries, supporting objects, and scripts
 # Useful libraries for main script
@@ -65,6 +65,7 @@ else:
     region_of_interest = cf.region_of_interest
     region_category = cf.region_category
     output_resolution = cf.output_resolution
+    output_pwm = cf.output_pwm
 
 # Create the output directory
 output_dir, f_out = create_output_dir(batch, name)
@@ -134,7 +135,9 @@ if __name__ == "__main__":
         
         # Create the exposure dataframe and run EJ functions
         logging.info('\n << Beginning Exposure EJ Calculations >>')
-        exposure_pctl, exposure_disparity = run_exposure_calcs(conc, pop_alloc, verbose)
+        exposure_gdf, exposure_pctl, exposure_disparity = run_exposure_calcs(conc, pop_alloc, verbose)    
+        if output_pwm:
+            export_pwm(exposure_gdf, shape_out, f_out)
         
         # Export results
         plot_percentile_exposure(output_dir, f_out, exposure_pctl, verbose)

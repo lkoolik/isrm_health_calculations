@@ -4,7 +4,7 @@
 EJ Functions
 
 @author: libbykoolik
-last modified: 2022-07-19
+last modified: 2022-07-27
 """
 
 # Import Libraries
@@ -116,7 +116,26 @@ def run_exposure_calcs(conc, pop_alloc, verbose):
     exposure_disparity = get_overall_disparity(exposure_gdf)
     exposure_pctl = estimate_exposure_percentile(exposure_gdf, verbose)
     
-    return exposure_pctl, exposure_disparity 
+    return exposure_gdf, exposure_pctl, exposure_disparity 
+
+def export_exposure(exposure_gdf, output_dir, f_out):
+    ''' Exports the exposure_gdf dataframe as a shapefile '''
+    logging.info('- Exporting exposure geodataframe as a shapefile.')
+    # If detailed flag is True, export detailed shapefile
+        
+    fname = str.lower(f_out + '_exposure_concentrations.shp') # File Name
+    fpath = os.path.join(output_dir, fname)
+    
+    # Update the columns slightly
+    exposure_gdf = exposure_gdf[['ISRM_ID', 'PM25_UG_M3', 'TOTAL', 'ASIAN', 'BLACK',
+                                 'HISLA', 'INDIG', 'PACIS', 'WHITE', 'OTHER',
+                                 'geometry']].copy()
+
+    # Export to file
+    exposure_gdf.to_file(fpath)
+    logging.info('   - Exposure concentrations output as {}'.format(fname))
+
+    return
 
 def plot_percentile_exposure(output_dir, f_out, df_pctl, verbose):
     ''' Creates a percentile plot by group '''
