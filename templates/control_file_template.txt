@@ -39,3 +39,4 @@
 - REGION_OF_INTEREST: #San Francisco Bay Area (*)
 - REGION_CATEGORY: #AD (*)
 - OUTPUT_RESOLUTION: #ISRM, C, AB, AD, or DACS (*)
+- OUTPUT_PWM: #Y
