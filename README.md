@@ -518,7 +518,52 @@ $$ 1 - ( \frac{1}{\exp(\beta_{d} \times C_{i})} ) \times I_{i,d,g} \times P_{i,g
       2. Calls `export_health_impacts.
 
 #### `tool_utils.py` 
-Text goes here
+The `tool_utils` library contains a handful of scripts that are useful for code execution.
 
-*Function #1*
-text
+1. `setup_logging`: sets up the log file capability using the `logging` library
+   1. Inputs:
+      * N/A
+   2. Outputs
+      * `tmp_logger`: a filepath string associated with a temporary log file that will be moved as soon as the output directory is created
+   3. Methodology:
+      1. Defines useful variables for the `logging` library.
+      2. Creates a temporary log file path (`tmp_logger`) that allows the file to be created before the output directory.
+      3. Suppresses all other library warnings and information.
+
+
+2. `create_output_dir`: creates the output directory for saving files
+   1. Inputs:
+      * `batch`: the batch name 
+      * `name`: the run name
+   2. Outputs
+      * `output_dir`: a filepath string for the output directory
+      * `f_out`: a string containing the filename pattern to be used in output files
+   3. Methodology:
+      1. Grabs the current working directory of the tool and defines 'outputs' as the sub-directory to use.
+      2. Checks to see if the directory already exists. If it does exists, automatically increments by 1 to create a unique directory.
+      3. Creates `f_out` by removing the 'out' before the `output_dir`.
+      4. Creates the output directory.
+
+3. `create_shape_out`: creates the output directory for saving shapefiles
+   1. Inputs:
+      * `output_dir`: a filepath string for the output directory
+   2. Outputs
+      * `shape_out`: a filepath string for the shapefile output directory
+   3. Methodology:
+      1. Creates a directory within the `output_dir` called 'shapes'.
+      2. Stores this name as `shape_out`.
+
+4. `get_output_region`: creates the output region geodataframe
+   1. Inputs:
+      * `region_of_interest`:  the name of the region to be contained in the `output_region`
+      * `region_category`: a string containing the region category for the output region, must be one of 'AB','AD', or 'C' for Air Basins, Air Districts, and Counties
+      * `output_geometry_fps`: a dictionary containing a mapping between `region_category` and the filepaths
+      * `ca_fps`: a filepath string containing the link to the California border shapefile
+   2. Outputs
+      * `output_region`: a geodataframe containing only the region of interest
+   3. Methodology:
+      1. Checks if the `region_of_interest` is California, in which case, it just reads in the California shapefile.
+      2. If California is not the `region_of_interest`:
+         1. Gets the filepath of the output region based on the `region_category` from the `output_geometry_fps` dictionary.
+         2. Reads in the file as a geodataframe.
+         3. Clips the geodataframe to the `region_of_interest`.
