@@ -31,8 +31,23 @@ class concentration:
     Defines a new object for storing and manipulating concentration data.
     
     INPUTS:
-        - tbd
+        - emis_obj: the emissions object, as defined by emissions.py
+        - isrm_obj: the ISRM object, as defined by isrm.py
         
+    CALCULATES:
+        - detailed_conc: geodataframe of the detailed concentrations at ground-level 
+          combined from all three vertical layers
+        - detailed_conc_clean: simplified geodataframe of the detailed concentrations 
+          at ground-level combined from all three vertical layers
+        - total_conc: geodataframe with total ground-level PM2.5 concentrations 
+          across the ISRM grid
+          
+    EXTERNAL FUNCTIONS:
+        - visualize_concentrations: draws a map of concentrations for a variable
+          and exports it as a PNG into an output directory of choice
+        - export_concentrations: exports concentrations as a shapefile into an output
+          directory of choice
+
     '''
     def __init__(self, emis_obj, isrm_obj, run_calcs=True, verbose=False):
         ''' Initializes the Concentration object'''        
@@ -47,11 +62,12 @@ class concentration:
         self.crs = self.isrm.crs
         self.name = self.emissions.emissions_name
         self.verbose = verbose
+        self.run_calcs = run_calcs
         verboseprint = logging.info if self.verbose else lambda *a, **k:None # for logging
         verboseprint('- Creating a new concentration object')
                 
         # Run concentration calculations
-        if run_calcs:
+        if self.run_calcs:
             self.detailed_conc, self.detailed_conc_clean, self.total_conc = self.combine_concentrations()
             verboseprint('- Total concentrations are now ready.')
             logging.info('\n')

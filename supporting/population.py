@@ -25,7 +25,22 @@ class population:
     Defines a new object for storing and manipulating concentration data.
     
     INPUTS:
-        - tbd
+        - file_path: the file path of the raw population data
+        - load_file: a Boolean indicating whether or not the file should be loaded 
+        - verbose: a Boolean indicating whether or not detailed logging statements 
+          should be printed
+          
+    CALCULATES:
+        - valid_file: a Boolean indicating whether or not the file provided is valid
+        - geometry: geospatial information associated with the emissions input
+        - pop_data: complete, detailed population data from the source
+        - crs: the inherent coordinate reference system associated with the emissions input
+        - pop_gdf: a geodataframe containing the population information with associated 
+          spatial information
+          
+    EXTERNAL FUNCTIONS:
+        - allocate_population: reallocates population into new geometry using a 
+          spatial intersect
         
     '''
     def __init__(self, file_path, load_file=True, verbose=False):
@@ -78,9 +93,6 @@ class population:
     def load_feather(self):
         ''' 
         Loads population data from a feather file.
-        
-        Requirements:
-            - TBD
         
         '''
         # Feather file is read using geopandas
