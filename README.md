@@ -3,7 +3,7 @@ A repository of scripts used for converting emissions to concentrations and heal
 
 *Libby Koolik, UC Berkeley*
 
-Last modified July 18, 2022
+Last modified August 1, 2022
 
 ## Table of Contents
 * Purpose and Goals ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#purpose-and-goals))
@@ -45,6 +45,25 @@ Once all layers are done:
 
 4. **Sum all Concentrations**: concentrations of PM<sub>2.5</sub> are summed by ISRM grid cell.
 
+### Health Module Methodology ###
+The ISRM calculations health module follows US EPA BenMAP CE methodology and CARB guidance. 
+
+Currently, the tool is only built out to use the Krewski et al. (2009), endpoint parameters and functions.([*](https://www.healtheffects.org/publication/extended-follow-and-spatial-analysis-american-cancer-society-study-linking-particulate)) The Krewski function is as follows:
+
+$$ \Delta M = 1 - ( \frac{1}{\exp(\beta_{d} \times C_{i})} ) \times I_{i,d,g} \times P_{i,g} $$
+
+where $\beta$ is the endpoint parameter from Krewski et al. (2009), $d$ is the disease endpoint, $C$ is the concentration of PM<sub>2.5</sub>, $i$ is the grid cell, $I$ is the baseline incidence, $g$ is the group, and $P$ is the population estimate. The tool takes the following steps to estimate these concentrations.
+
+1. **Preprocessing**: the tool will merge the population and incidence data based on geographic intersections using the `health_data.py` object type. 
+
+2. **Estimation by Endpoint**: the tool will then calculate excess mortality by endpoint:
+   1. The population-incidence data are spatially merged with the exposure concentrations estimated in the Concentration Module.
+   2. For each row of the intersection, the excess mortality is estimated based on the function of choice (currently, only Krewski).
+   3. Excess mortality is summed across age ranges by ISRM grid cell and racial/ethnic group.
+
+Once all endpoints are done:
+
+3. **Export and Visualize**: excess mortality is exported as a shapefile and as a plot.
 
 ----
 
