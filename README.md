@@ -396,22 +396,32 @@ The `environmental_justice_calcs` script file contains a number of functions tha
          3. Estimates the total population of the `group`.
          4. Estimates percentile as the population in the grid cell divided by the total population of the `group`.
          5. Adds the percentile column into the main dataframe.
-6. `run_exposure_calcs`: r
+6. `run_exposure_calcs`: calls the other exposure justice functions in order
    1. Inputs:
-      * asdfasdf
+      * `conc`: concentration object from `concentration.py`
+      * `isrm_pop_alloc`: population object (from `population.py`) re-allocated to the ISRM grid cell geometry
+      * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed
    2. Outputs:
-      * asdfasdf
+      * `exposure_pctl`: a dataframe of exposure concentrations by percentile of population exposed by group
+      * `exposure_disparity`: a dataframe containing the PWM, absolute disparity, and relative disparity of each group
    3. Methodology:
-      * asdf
-      * asdf
-7. `plot_percentile_exposure`
-   1. Inputs:
-      * asdfasdf
+      1. Calls the `create_exposure_df` function.
+      2. Calls the `get_overall_disparity` function.
+      3. Calls the `estimate_exposure_percentile` function.
+7. `plot_percentile_exposure`: creates a plot of exposure concentration by percentile of each group's population
+   1. Inputs: 
+      * `output_dir`: a filepath string of the location of the output directory
+      * `f_out`: the name of the file output category (will append additional information)
+      * `df_pctl`: a dataframe of exposure concentrations by percentile of population exposed by group
+      * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed
    2. Outputs:
-      * asdfasdf
+      * The function does not return anything, but a lineplot image (PNG) will be output into the `output_dir`.
    3. Methodology:
-      * asdf
-      * asdf
+      1. Creates a melted (un-pivoted) version of the percentiles dataframe.
+      2. Multiplies the percentile by 100 to span 0-100 instead of 0-1.
+      3. Maps the racial/ethnic group names to better formatted names (e.g., "HISLA" --> "Hispanic/Latino")
+      4. Draws the figure using the `seaborn` library's `lineplot` function.
+      5. Saves the file as `f_out` + '_PM25_Exposure_Percentiles.png' into the `out_dir`.
 
 #### `health_impact_calcs.py` 
 Text goes here
