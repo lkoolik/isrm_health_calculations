@@ -424,10 +424,98 @@ The `environmental_justice_calcs` script file contains a number of functions tha
       5. Saves the file as `f_out` + '_PM25_Exposure_Percentiles.png' into the `out_dir`.
 
 #### `health_impact_calcs.py` 
-Text goes here
+The `health_impact_calcs` script file contains a number of functions that help calculate health impacts from exposure concentrations.
 
-*Function #1*
-text
+1. `krewski`: defines a Python function around the Krewski et al. (2009) function and endpoints
+   1. Inputs:
+      * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed
+      * `conc`: a float with the exposure concentration for a given geography
+      * `inc`: a float with the background incidence for a given group in a given geography
+      * `pop`: a float with the population estimate for a given group in a given geography
+      * `endpoint`: a string containing either 'ALL CAUSE', 'ISCHEMIC HEART DISEASE', or 'LUNG CANCER'
+   2. Outputs
+      * a float estimating the number of excess mortalities for the `endpoint` across the group in a given geography
+   3. Methodology:
+      1. Based on the `endpoint`, grabs a `beta` parameter from Krewski et al. (2009).
+      2. Estimates excess mortality using the following equation, where $\beta$ is the endpoint parameter from Krewski et al. (2009), $d$ is the disease endpoint, $C$ is the concentration of PM<sub>2.5</sub>, $i$ is the grid cell, $I$ is the baseline incidence, $g$ is the group, and $P$ is the population estimate.
+
+$$ 1 - ( \frac{1}{\exp(\beta_{d} \times C_{i})} ) \times I_{i,d,g} \times P_{i,g} $$
+
+2. `calculate_excess_mortality`: estimates excess mortality for a given `endpoint` and `function`
+   1. Inputs:
+      * `conc`: a float with the exposure concentration for a given geography
+      * `health_data_obj`: a `health_data` object as defined in the `health_data.py` supporting script
+      * `endpoint`: a string containing either 'ALL CAUSE', 'ISCHEMIC HEART DISEASE', or 'LUNG CANCER'
+      * `function`: the health impact function of choice (currently only `krewski` is built out)
+      * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed      
+   2. Outputs
+      * `pop_inc_conc`: a dataframe containing excess mortality for the `endpoint` using the `function` provided
+   3. Methodology:
+      1. Creates clean, simplified copies of the `detailed_conc` method of the `conc` object and the `pop_inc` method of the `health_data_obj`.
+      2. Merges these two dataframes on the ISRM_ID field.
+      3. Estimates excess mortality on a row-by-row basis using the `function`.
+      4. Pivots the dataframe to get the individual races as columns.
+      5. Adds the geometry back in to make it geodata.
+      6. Updates the column names such that the excess mortality columns are ENDPOINT_GROUP.
+      7. Merges the population back into the dataframe.
+      8. Cleans up the dataframe.
+ 
+3. `plot_total_mortality`: creates a map image (PNG) of the excess mortality associated with an `endpoint` for a given `group`.
+   1. Inputs:
+      * `hia_df`: a dataframe containing excess mortality for the `endpoint` using the `function` provided
+      * `ca_shp_fp`: a filepath string of the California state boundary shapefile
+      * `group`: the racial/ethnic group name
+      * `endpoint`: a string containing either 'ALL CAUSE', 'ISCHEMIC HEART DISEASE', or 'LUNG CANCER'
+      * `output_dir`: a filepath string of the location of the output directory
+      * `f_out`: the name of the file output category (will append additional information) 
+      * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed      
+   2. Outputs
+      * `pop_inc_conc`: a dataframe containing excess mortality for the `endpoint` using the `function` provided
+   3. Methodology:
+      1. Sets a few formatting standards within `seaborn` and `matplotlib.pyplot`.
+      2. Creates the output file directory and name string using `f_out`, `group`, and `endpoint`.
+      3. Reads in the California boundary and projects the `hia_df` to match the coordinate reference system of the California dataset.
+      4. Clips the dataframe to the California boundary.
+      5. Adds area-normalized columns to the `hia_df` for more intuitive plotting.
+      6. Grabs the minimums and sets them to 10<sup>-9</sup> in order to avoid logarithm conversion errors.
+      7. Updates the 'MORT_OVER_POP' column to avoid 100% mortality that arises from the update in step 6.
+      8. Initializes the figure and plots four panes:
+         1. Population density: plots the area-normalized population estimates for the group on a log-normal scale.
+         2. PM<sub>2.5</sub> exposure concentrations: plots the exposure concentration on a log-normal scale.
+         3. Excess mortality per area: plots the excess mortality per unit area on a log-normal scale.
+         4. Excess mortality per population: plots the excess mortality per population for the group on a log-normal scale.
+      9. Performs a bit of clean-up and formatting before exporting.
+  
+4. `export_health_impacts`: asdf
+   1. Inputs:
+      * `hia_df`: a dataframe containing excess mortality for the `endpoint` using the `function` provided
+      * `group`: the racial/ethnic group name
+      * `endpoint`: a string containing either 'ALL CAUSE', 'ISCHEMIC HEART DISEASE', or 'LUNG CANCER'
+      * `output_dir`: a filepath string of the location of the output directory
+      * `f_out`: the name of the file output category (will append additional information) 
+      * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed      
+   2. Outputs
+      * `fname`: a string filename made by combining the `f_out` with the `group` and `endpoint`.
+   3. Methodology:
+      1. Creates the output file path (`fname`) using inputs.
+      2. Creates endpoint short labels and updates column names since shapefiles can only have ten characters in column names.
+      3. Exports the geodataframe to shapefile.
+
+5. `visualize_and_export_hia`: calls `plot_total_mortality` and `export_health_impacts` in one clean function call.
+   1. Inputs:
+      * `hia_df`: a dataframe containing excess mortality for the `endpoint` using the `function` provided
+      * `ca_shp_fp`: a filepath string of the California state boundary shapefile
+      * `group`: the racial/ethnic group name
+      * `endpoint`: a string containing either 'ALL CAUSE', 'ISCHEMIC HEART DISEASE', or 'LUNG CANCER'
+      * `output_dir`: a filepath string of the location of the output directory
+      * `f_out`: the name of the file output category (will append additional information) 
+      * `shape_out`: a filepath string for shapefiles
+      * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed      
+   2. Outputs
+      * N/A
+   3. Methodology:
+      1. Calls `plot_total_mortality`.
+      2. Calls `export_health_impacts.
 
 #### `tool_utils.py` 
 Text goes here
