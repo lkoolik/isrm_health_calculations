@@ -4,7 +4,7 @@
 Health Impact Function Meta Data Object
 
 @author: libbykoolik
-last modified: 2022-07-19
+last modified: 2022-08-01
 """
 
 # Import Libraries
@@ -117,13 +117,14 @@ class health_data:
         return incidence
 
     def get_incidence_lookup(self, incidence, name, race, start_age, endpoint):
-        ''' '''
+        ''' Creates a small incidence lookup table based on the name and age ranges '''
         inc_small = incidence[(incidence['NAME']==name)]#&(incidence['RACE']==race)]
         inc_small = inc_small[(inc_small['END_AGE']>=start_age)&(inc_small['START_AGE']<=start_age)]
         
         return inc_small[endpoint].values[0]
     
     def get_incidence_pop(self, name, race, start_age, end_age, endpoint, incidence_lookup):
+        ''' Helper function for returning incidence given name, race, age range, and endpoint '''
         n = end_age - start_age + 1
         
         snip = incidence_lookup[incidence_lookup['NAME']==name]

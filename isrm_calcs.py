@@ -53,7 +53,7 @@ tmp_logger = setup_logging()
 cf = control_file(args.inputs)
 if not cf.ready:
     sys.exit()
-else:
+else: # load all the control file info
     batch = cf.batch_name
     name = cf.run_name
     emissions_path = cf.emissions_path

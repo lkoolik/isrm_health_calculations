@@ -4,7 +4,7 @@
 EJ Functions
 
 @author: libbykoolik
-last modified: 2022-07-27
+last modified: 2022-08-01
 """
 
 # Import Libraries
@@ -57,7 +57,21 @@ def create_exposure_df(conc, isrm_pop_alloc, verbose):
     return exposure_gdf
 
 def add_pwm_col(exposure_gdf, group):
-    ''' Adds an intermediate column that multiplies population by exposure '''
+    ''' 
+    Adds an intermediate column that multiplies population by exposure.
+    
+    INPUTS:
+        - conc: concentration object from `concentration.py`
+        - isrm_pop_alloc: population object (from `population.py`) re-allocated to the ISRM 
+          grid cell geometry
+        - verbose: a Boolean indicating whether or not detailed logging statements should be 
+          printed
+          
+    OUTPUTS:
+        - exposure_gdf: a geodataframe with the exposure concentrations and allocated population
+          by racial group
+    
+    '''
     # Create a string for the PWM column name
     pwm_col = group+'_PWM'
     
@@ -67,7 +81,17 @@ def add_pwm_col(exposure_gdf, group):
     return exposure_gdf
 
 def get_pwm(exposure_gdf, group):
-    ''' Estimates the population weighted mean exposure for a given group '''
+    ''' 
+    Estimates the population weighted mean exposure for a given group 
+    
+    INPUTS:
+        - exposure_gdf: a geodataframe with the exposure concentrations and allocated population 
+          by racial group
+        - group: the racial/ethnic group name
+        
+    OUTPUTS: 
+        - PWM_group: the group-level population weighted mean exposure concentration (float)
+    '''
     # Create a string for the PWM column name
     pwm_col = group+'_PWM'
     
@@ -77,7 +101,18 @@ def get_pwm(exposure_gdf, group):
     return PWM_group
 
 def get_overall_disparity(exposure_gdf):
-    ''' Returns a table of overall disparity metrics '''
+    ''' 
+    Returns a table of overall disparity metrics 
+    
+    INPUTS:
+        - exposure_gdf: a geodataframe with the exposure concentrations and allocated population 
+          by racial group
+        
+    OUTPUTS: 
+        - pwm_df: a dataframe containing the PWM, absolute disparity, and relative disparity
+          of each group
+    
+    '''
     # Define racial/ethnic groups of interest
     groups = ['TOTAL', 'ASIAN', 'BLACK', 'HISLA', 'INDIG', 'PACIS', 'WHITE','OTHER']
     
@@ -94,7 +129,19 @@ def get_overall_disparity(exposure_gdf):
     return pwm_df
 
 def estimate_exposure_percentile(exposure_gdf, verbose):
-    ''' Creates a dataframe of percentiles '''
+    ''' 
+    Creates a dataframe of percentiles
+    
+    INPUTS:
+        - exposure_gdf: a geodataframe with the exposure concentrations and allocated population 
+          by racial group
+        - verbose: a Boolean indicating whether or not detailed logging statements should be printed
+        
+    OUTPUTS:
+        - df_pctl: a dataframe of exposure concentrations by percentile of population exposed 
+          by group
+    
+    '''
     if verbose:
         logging.info('- Estimating the exposure level for each percentile of each demographic group population.')
     
@@ -125,7 +172,25 @@ def estimate_exposure_percentile(exposure_gdf, verbose):
     return df_pctl
 
 def run_exposure_calcs(conc, pop_alloc, verbose):
-    ''' Run the exposure EJ calculations from one script '''
+    ''' 
+    Run the exposure EJ calculations from one script 
+    
+    INPUTS:
+        - conc: concentration object from `concentration.py`
+        - isrm_pop_alloc: population object (from `population.py`) re-allocated to the 
+          ISRM grid cell geometry
+        - verbose: a Boolean indicating whether or not detailed logging statements should
+          be printed
+        
+    OUTPUTS: 
+        - exposure_gdf: a dataframe containing the exposure concentrations and population
+          estimates for each group
+        - exposure_pctl: a dataframe of exposure concentrations by percentile of population
+          exposed by group
+        - exposure_disparity: a dataframe containing the PWM, absolute disparity, and relative
+          disparity of each group
+    
+    '''
     exposure_gdf = create_exposure_df(conc, pop_alloc, verbose)
     exposure_disparity = get_overall_disparity(exposure_gdf)
     exposure_pctl = estimate_exposure_percentile(exposure_gdf, verbose)
@@ -133,7 +198,19 @@ def run_exposure_calcs(conc, pop_alloc, verbose):
     return exposure_gdf, exposure_pctl, exposure_disparity 
 
 def export_exposure(exposure_gdf, output_dir, f_out):
-    ''' Exports the exposure_gdf dataframe as a shapefile '''
+    ''' 
+    Exports the exposure_gdf dataframe as a shapefile 
+    
+    INPUTS:
+        - exposure_gdf: a dataframe containing the exposure concentrations and population
+          estimates for each group
+        - output_dir: a filepath string of the location of the output directory
+        - f_out: the name of the file output category (will append additional information)
+        
+    OUTPUTS:
+        - None
+    
+    '''
     logging.info('- Exporting exposure geodataframe as a shapefile.')
     # If detailed flag is True, export detailed shapefile
         
@@ -152,7 +229,21 @@ def export_exposure(exposure_gdf, output_dir, f_out):
     return
 
 def plot_percentile_exposure(output_dir, f_out, df_pctl, verbose):
-    ''' Creates a percentile plot by group '''
+    ''' 
+    Creates a percentile plot by group 
+    
+    INPUTS:
+        - output_dir: a filepath string of the location of the output directory
+        - f_out: the name of the file output category (will append additional information)
+        - df_pctl: a dataframe of exposure concentrations by percentile of population
+          exposed by group
+        - verbose: a Boolean indicating whether or not detailed logging statements should
+          be printed
+        
+    OUTPUTS:
+        - None
+    
+    '''
     if verbose:
         logging.info('- Drawing plot of exposure by percentile of each racial/ethnic group.')
     # Define racial/ethnic groups of interest

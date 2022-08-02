@@ -3,7 +3,7 @@ A repository of scripts used for converting emissions to concentrations and heal
 
 *Libby Koolik, UC Berkeley*
 
-Last modified July 18, 2022
+Last modified August 1, 2022
 
 ## Table of Contents
 * Purpose and Goals ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#purpose-and-goals))
@@ -45,6 +45,25 @@ Once all layers are done:
 
 4. **Sum all Concentrations**: concentrations of PM<sub>2.5</sub> are summed by ISRM grid cell.
 
+### Health Module Methodology ###
+The ISRM calculations health module follows US EPA BenMAP CE methodology and CARB guidance. 
+
+Currently, the tool is only built out to use the Krewski et al. (2009), endpoint parameters and functions.([*](https://www.healtheffects.org/publication/extended-follow-and-spatial-analysis-american-cancer-society-study-linking-particulate)) The Krewski function is as follows:
+
+$$ \Delta M = 1 - ( \frac{1}{\exp(\beta_{d} \times C_{i})} ) \times I_{i,d,g} \times P_{i,g} $$
+
+where $\beta$ is the endpoint parameter from Krewski et al. (2009), $d$ is the disease endpoint, $C$ is the concentration of PM<sub>2.5</sub>, $i$ is the grid cell, $I$ is the baseline incidence, $g$ is the group, and $P$ is the population estimate. The tool takes the following steps to estimate these concentrations.
+
+1. **Preprocessing**: the tool will merge the population and incidence data based on geographic intersections using the `health_data.py` object type. 
+
+2. **Estimation by Endpoint**: the tool will then calculate excess mortality by endpoint:
+   1. The population-incidence data are spatially merged with the exposure concentrations estimated in the Concentration Module.
+   2. For each row of the intersection, the excess mortality is estimated based on the function of choice (currently, only Krewski).
+   3. Excess mortality is summed across age ranges by ISRM grid cell and racial/ethnic group.
+
+Once all endpoints are done:
+
+3. **Export and Visualize**: excess mortality is exported as a shapefile and as a plot.
 
 ----
 
@@ -114,13 +133,18 @@ Finally, the output_region is defined based on the `get_output_region` function 
 #### Run Program
 The run program section of the code is split into two modes. If the CHECK_INPUTS flag is given, the tool will run in check mode, where it will check that each of the inputs is valid and then quit. If the CHECK_INPUTS flag is not given, the tool will run the full program. 
 
-It will start by creating an output directory using the `create_output_dir` function from `tool_utils.py`. It will also create a shapefile subdirectory within the output folder directory using `create_shape_out`. 
+It will start by creating a log file using the `setup_logging` function. Once the logging is set up, an output directory is created using the `create_output_dir` function from `tool_utils.py`. It will also create a shapefile subdirectory within the output folder directory using `create_shape_out`. The tool will also create an `output_region` geodataframe from user inputs for use in future steps.
 
-Then, the tool will begin the concentration module. This starts by defining an emissions object and an isrm object using the `emissions.py` and `isrm.py` supporting class objects. The concentrations will be estimated using the `concentration.py` object, which relies on the `concentration_layer.py` object. The concentrations will then be output as a map of total exposure concentration and a shapefile with detailed exposure information.
+Then, the tool will begin the concentration module. This starts by defining an emissions object and an isrm object using the `emissions.py` and `isrm.py` supporting class objects. The concentrations will be estimated using the `concentration.py` object, which relies on the `concentration_layer.py` object. The concentrations will then be output as a map of total exposure concentration and a shapefile with detailed exposure information. 
 
-Next, the tool will run environmental justice exposure calculations using the `create_exposure_df`, `get_overall_disparity`, and `estimate_exposure_percentile` functions from the `environmental_justice_calcs.py` file. The exposure percentiles will then be plotted and exported using the `plot_percentile_exposure` function.
+Next, the tool will run environmental justice exposure calculations using the `create_exposure_df`, `get_overall_disparity`, and `estimate_exposure_percentile` functions from the `environmental_justice_calcs.py` file. The exposure percentiles will then be plotted and exported using the `plot_percentile_exposure` function. If the control file has indicated that exposure data should be output (using the 'OUTPUT_EXPOSURE' flag), a shapefile of exposure concentrations by population group will be output in the output directory.
 
 Finally, if indicated by the user, the tool will begin the health module. It will create the health input object using the `health_data.py` library and then estimate the three endpoints of excess mortality using `calculate_excess_mortality` from the `health_impact_calcs` file. Each endpoint will then be mapped and exported using `visualize_and_export_hia`.
+
+The program has completed when a box stating "Success! Run complete." shows on the screen.
+
+#### Check Module
+If enabled in the control file, the program will run in `check` mode, which will run a number of checks built into the `emissions`, `isrm`, and `population` objects. Once it runs all checking functions, it will quit and inform the user of the result. 
 
 
 ### Supporting Code
@@ -167,7 +191,7 @@ The `concentration` object runs ISRM-based calculations for each of the vertical
 * `isrm_geom`: the geometry (geographic attributes) of the ISRM grid
 * `crs`: the coordinate reference system associated with the ISRM grid
 * `name`: a string representing the run name preferred by the user
-* `check`: a Boolean indicating whether the program should run, or if it should just check the inputs (useful for debugging)
+* `run_calcs`: a Boolean indicating whether the program should run, or if it should just check the inputs (useful for debugging)
 * `verbose`: a Boolean indicating whether the user wants to run in verbose mode
 
 *Calculated Attributes*
@@ -175,9 +199,11 @@ The `concentration` object runs ISRM-based calculations for each of the vertical
 * `detailed_conc_clean`: simplified geodataframe of the detailed concentrations at ground-level combined from all three vertical layers
 * `total_conc`: geodataframe with total ground-level PM<sub>2.5</sub> concentrations across the ISRM grid
 
-*Simple Functions*
+*Internal Functions*
 * `run_layer`: estimates concentrations for a single layer by creating a `concentration_layer` object for that layer
 * `combine_concentrations`: checks for each of the layer flags in the `emissions` object, and then calls the `run_layer` function for each layer that is flagged. Then, combines the concentrations from each layer flagged into the three concentration geodataframes described above
+
+*External Functions*
 * `visualize_concentrations`: draws a map of concentrations for a variable (`var`) and exports it as a PNG into an output directory (`output_dir`) of choice
 * `export_concentrations`: exports concentrations as a shapefile into an output directory (`output_dir`) of choice
 
@@ -197,8 +223,18 @@ The `control_file` object is used to check and read the control file for a run:
 * `emissions_units`: a string representing the units of the emissions data
 * `check`: a Boolean indicating whether the program should run, or if it should just check the inputs (useful for debugging)
 * `verbose`: a Boolean indicating whether the user wants to run in verbose mode
+* `output_exposure`: a Boolean indicating whether exposure should be output
 
-*Simple Functions*
+*Internal Functions*
+* `check_path`: checks if a file exists at the given control file path
+* `get_input_value`: gets the input for a given keyword
+* `check_control_file`: runs all of the internal checks to confirm the control file is valid
+* `get_all_inputs`: imports all values from the control file
+* `get_region_dict`: loads all of the acceptable values for the various regions
+* `region_check_helper`: a helper function for checking the region of interest and region category inputs
+* `check_inputs`: checks that all inputs are valid once imported
+
+*External Functions*
 * `get_file_path`: returns the file path
 
 #### `emissions.py`
@@ -231,7 +267,7 @@ The `emissions` object is primarily built off of `geopandas`. It has the followi
 * `SOX`: SOx emissions in each grid cell
 * `L0_flag`, `L1_flag`, `L2_flag`, `linear_interp_flag`: Booleans indicating whether each layer should be calculated based on emissions release heights
 
-*Simple Functions*
+*Internal Functions*
 * `get_file_path`: returns the file path
 * `get_name`: returns the name associated with the emissions (`emissions_name`)
 * `get_unit_conversions`: returns two dictionaries of built-in unit conversions
@@ -239,6 +275,7 @@ The `emissions` object is primarily built off of `geopandas`. It has the followi
 * `check_units`: checks that the provided units are valid against the `get_unit_conversions` dictionaries
 * `load_emissions`: detects the filetype of the emissions file and calls the appropriate load function
 * `load_shp`: loads the emissions data from a shapefile
+* `load_feather`: loads the emissions data from a feather file
 * `check_height`: checks that the height column is present in the emissions file; if not, assumes emissions are released at ground-level
 * `check_emissions`: runs a number of checks on the emissions data to ensure data are valid before running anything
 * `map_pollutant_names`: replaces pollutant names if they are not found in the emissions data based on near-misses (e.g., PM2.5 for PM25)
@@ -249,6 +286,8 @@ The `emissions` object is primarily built off of `geopandas`. It has the followi
 * `convert_units`: converts units from provided units to μg/s using the unit dictionaries built-in
 * `split_polutants`: converts the emissions layer into separate objects for each pollutant
 * `which_layers`: determines the `L0_flag`, `L1_flag`, `L2_flag`, and `linear_interp_flag` variables based on the HEIGHT column of the emissions data
+
+*External Functions*
 * `visualize_emissions`: creates a simple map of emissions for a provided pollutant
 * `get_pollutant_layer`: pulls a single pollutant layer based on `pol_name`
 
@@ -269,7 +308,7 @@ The `health_data` object stores and manipulates built-in health data (population
 * `incidence`: a geodataframe containing the raw incidence data from BenMAP
 * `pop_inc`: a geodataframe containing the combined population and incidence data based on the requested geographies
 
-*Simple Functions*
+*Internal Functions*
 * `load_data`: reads in the population and incidence data from feather files
 * `update_pop`: updates the population dataset by melting (unpivot) and renaming columns
 * `update_inc`: updates the incidence dataset by pivoting columns around endpoints and renaming columns
@@ -303,11 +342,14 @@ The `isrm` object loads, stores, and manipulates the ISRM grid data.
 * `receptor_geometry`: the geospatial information associated with the ISRM receptors within the `output_region`
 * `PM25`, `NH3`, `NOx`, `SOX`, `VOC`: the ISRM matrices for each of the primary pollutants
 
-*Simple Functions*
+*Internal Functions*
 * `check_path`: checks if the files exist at the paths specified (both data and geo files)
 * `load_and_cut`: loads the numpy layers for a pollutant and trims the columns of each vertical layer's matrix to only include the `receptor_IDs` within the `output_region`
+* `load_isrm`: calls the `load_and_cut` function for each ISRM numeric layer and returns a list of pollutant matrices
 * `load_geodata`: loads the feather file into a geopandas dataframe
-* `clip_isrm`: clips the ISRM receptors to only the relevant ones based on the `output_region` (i.e., returns the `receptor_IDs` and `receptor_geometry` objects)
+* `clip_isrm`: clips the ISRM receptor geodata to only the relevant ones based on the `output_region` (i.e., returns the `receptor_IDs` and `receptor_geometry` objects)
+
+*External Functions*
 * `get_pollutant_layer`: returns the ISRM matrix for a single pollutant
 * `map_isrm`: simple function for mapping the ISRM grid cells
 
@@ -326,10 +368,13 @@ The `population` object stores detailed Census tract-level population data for t
 * `crs`: the inherent coordinate reference system associated with the emissions input
 * `pop_gdf`: a geodataframe containing the population information with associated spatial information
 
-*Simple Functions*
+*Internal Functions*
 * `check_path`: checks to see if the file exists at the path specified and returns whether the file is valid
 * `load_population`: loads the population data based on the file extension
 * `load_feather`: loads the population feather data using geopandas and post-processes
+
+*External Functions*
+* `project_pop`: projects the population data to a new coordinate reference system
 * `allocate_population`: reallocates population into new geometry using a spatial intersect
 
 ### Scripts
@@ -402,13 +447,25 @@ The `environmental_justice_calcs` script file contains a number of functions tha
       * `isrm_pop_alloc`: population object (from `population.py`) re-allocated to the ISRM grid cell geometry
       * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed
    2. Outputs:
+      * `exposure_gdf`: a dataframe containing the exposure concentrations and population estimates for each group
       * `exposure_pctl`: a dataframe of exposure concentrations by percentile of population exposed by group
       * `exposure_disparity`: a dataframe containing the PWM, absolute disparity, and relative disparity of each group
    3. Methodology:
       1. Calls the `create_exposure_df` function.
       2. Calls the `get_overall_disparity` function.
       3. Calls the `estimate_exposure_percentile` function.
-7. `plot_percentile_exposure`: creates a plot of exposure concentration by percentile of each group's population
+7. `export_exposure`: exports the exposure concentrations and population estimates as a shapefile
+   1. Inputs: 
+      * `exposure_gdf`: a dataframe containing the exposure concentrations and population estimates for each group
+      * `output_dir`: a filepath string of the location of the output directory
+      * `f_out`: the name of the file output category (will append additional information)
+   2. Outputs:
+      * The function does not return anything, but a shapefile will be output into the `output_dir`.
+   3. Methodology:
+      1. Creates a filename and path for the export.
+      2. Updates the columns slightly for shapefile naming
+      3. Exports the shapefile.
+8. `plot_percentile_exposure`: creates a plot of exposure concentration by percentile of each group's population
    1. Inputs: 
       * `output_dir`: a filepath string of the location of the output directory
       * `f_out`: the name of the file output category (will append additional information)
@@ -470,7 +527,7 @@ $$ 1 - ( \frac{1}{\exp(\beta_{d} \times C_{i})} ) \times I_{i,d,g} \times P_{i,g
       * `f_out`: the name of the file output category (will append additional information) 
       * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed      
    2. Outputs
-      * `pop_inc_conc`: a dataframe containing excess mortality for the `endpoint` using the `function` provided
+      * `fname`: a string filename made by combining the `f_out` with the `group` and `endpoint`.
    3. Methodology:
       1. Sets a few formatting standards within `seaborn` and `matplotlib.pyplot`.
       2. Creates the output file directory and name string using `f_out`, `group`, and `endpoint`.

@@ -4,7 +4,7 @@
 Emissions Data Object
 
 @author: libbykoolik
-last modified: 2022-07-19
+last modified: 2022-08-01
 """
 
 # Import Libraries
@@ -223,7 +223,7 @@ class emissions:
         return geometry, emissions_data, crs
 
     def check_height(self):
-        ''' '''
+        ''' Checks to see if a height column exists, otherwise adds groundlevel height '''
         if 'HEIGHT_M' in self.emissions_data.columns:
             return
         

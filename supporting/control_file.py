@@ -4,7 +4,7 @@
 Control File Reading Object
 
 @author: libbykoolik
-last modified: 2022-07-27
+last modified: 2022-08-01
 """
 
 # Import Libraries
@@ -25,6 +25,21 @@ class control_file:
     
     INPUTS:
         - file_path: File path to the control file 
+        
+    ATTRIBUTES:
+        - valid_file: a Boolean indicating whether or not the control file path is valid
+        - keywords: a hardcoded list of the keywords that should be present in the control file
+        - blanks_okay: a hardcoded list of whether each keyword can be blank 
+          (based on order of `keywords`)
+        - valid_structure: Boolean keyword based on internal checks of the control file format
+        - no_incorrect_blanks: Boolean keyword based on internal checks of the control file format
+        - run_name: a string representing the run name preferred by the user
+        - emissions_path: a string representing the path to the emissions input file
+        - emissions_units: a string representing the units of the emissions data
+        - check: a Boolean indicating whether the program should run, or if it should just 
+          check the inputs (useful for debugging)
+        - verbose: a Boolean indicating whether the user wants to run in verbose mode
+        - output_exposure: a Boolean indicating whether exposure should be output
         
     '''
     def __init__(self, file_path):
