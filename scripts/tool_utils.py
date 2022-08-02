@@ -4,7 +4,7 @@
 Tool Utils
 
 @author: libbykoolik
-last modified: 2022-07-19
+last modified: 2022-08-01
 """
 
 #%% Import useful libraries
@@ -21,6 +21,17 @@ import logging
 
 #%% ISRM Tool Utils
 def setup_logging():
+    '''
+    Sets up the log file system for runs.
+    
+    INPUTS:
+        - None.
+        
+    OUTPUTS:
+        - tmp_logger: a filepath string associated with a temporary log file that will 
+          be moved as soon as the output directory is created
+
+    '''
     level = logging.INFO
     format = ' %(message)s'
     tmp_logger = os.path.join(os.getcwd(),'tmp.txt')
@@ -37,7 +48,18 @@ def setup_logging():
     return tmp_logger
 
 def create_output_dir(batch, name):
-    ''' Creates the output directory for files generated '''
+    ''' 
+    Creates the output directory for files generated.
+    
+    INPUTS:
+        - batch: the batch name 
+        - name: the run name
+        
+    OUTPUTS:
+        - output_dir: a filepath string for the output directory
+        - f_out: a string containing the filename pattern to be used in output files
+    
+    '''
     # Grab current working directory and the 'outputs' sub folder
     parent = os.getcwd()
     sub = 'outputs'
@@ -86,7 +108,16 @@ def create_output_dir(batch, name):
     return output_dir, f_out
 
 def create_shape_out(output_dir):
-    ''' Create additional subdirectory for shapefiles '''
+    ''' 
+    Create additional subdirectory for shapefiles.
+    
+    INPUTS:
+        - output_dir: a filepath string for the output directory
+        
+    OUTPUTS:
+        - shape_out: a filepath string for the shapefile output directory
+    
+    '''
     # Set up parent and sub
     parent = output_dir
     sub = 'shapes'
@@ -98,7 +129,21 @@ def create_shape_out(output_dir):
     return shape_out
 
 def get_output_region(region_of_interest, region_category, output_geometry_fps, ca_fps):
-    ''' Outputs a geodataframe of the output region '''
+    ''' 
+    Outputs a geodataframe of the output region.
+    
+    INPUTS:
+        - region_of_interest:  the name of the region to be contained in the `output_region`
+        - region_category: a string containing the region category for the output region, 
+          must be one of 'AB','AD', or 'C' for Air Basins, Air Districts, and Counties
+        - output_geometry_fps: a dictionary containing a mapping between `region_category` 
+          and the filepaths
+        - ca_fps: a filepath string containing the link to the California border shapefile
+        
+    OUTPUTS:
+        - output_region: a geodataframe containing only the region of interest
+        
+    '''
     if region_of_interest != 'CA': # Check if output region even wanted
         sys.path.append(os.path.realpath('..'))
         

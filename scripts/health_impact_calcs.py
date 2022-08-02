@@ -4,7 +4,7 @@
 Health Impact Functions
 
 @author: libbykoolik
-last modified: 2022-07-19
+last modified: 2022-08-01
 """
 
 # Import Libraries
@@ -23,7 +23,23 @@ import sys
 
 #%% Health Calculation Helper Functions
 def krewski(conc, inc, pop, endpoint):
-    ''' Estimates excess mortality from all causes using the Krewski (2009) function '''
+    ''' 
+    Estimates excess mortality from all causes using the Krewski (2009) function 
+    
+    INPUTS:
+        - verbose: a Boolean indicating whether or not detailed logging statements should 
+          be printed
+        - conc: a float with the exposure concentration for a given geography
+        - inc: a float with the background incidence for a given group in a given geography
+        - pop: a float with the population estimate for a given group in a given geography
+        - endpoint: a string containing either 'ALL CAUSE', 'ISCHEMIC HEART DISEASE', 
+          or 'LUNG CANCER'
+        
+    OUTPUTS: 
+        - a float estimating the number of excess mortalities for the `endpoint` across 
+          the group in a given geography
+    
+    '''
     # Beta from Krewski et al (2009) and BenMAP
     beta_dict = {'ALL CAUSE':0.005826891,
                  'ISCHEMIC HEART DISEASE': 0.021511138,
@@ -34,7 +50,25 @@ def krewski(conc, inc, pop, endpoint):
 
 #%% Main Calculation Functions
 def calculate_excess_mortality(conc, health_data_obj, endpoint, function, verbose):
-    ''' Calculate Excess Mortality '''
+    ''' 
+    Calculate Excess Mortality 
+    
+    INPUTS:
+        - conc: a float with the exposure concentration for a given geography
+        - health_data_obj: a `health_data` object as defined in the `health_data.py` 
+          supporting script
+        - endpoint: a string containing either 'ALL CAUSE', 'ISCHEMIC HEART DISEASE', 
+          or 'LUNG CANCER'
+        - function: the health impact function of choice (currently only `krewski` is 
+          built out)
+        - verbose: a Boolean indicating whether or not detailed logging statements 
+          should be printed 
+        
+    OUTPUTS:
+        - pop_inc_conc: a dataframe containing excess mortality for the `endpoint` using
+          the `function` provided
+    
+    '''
     logging.info('- Estimating excess {} mortality from PM2.5. This step may take time.'.format(endpoint.lower()))
     
     # Get the population-incidence  and total concentration
@@ -106,12 +140,23 @@ def calculate_excess_mortality(conc, health_data_obj, endpoint, function, verbos
 def plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out, verbose):
     ''' 
     Plots mortality maps and exports as a png. 
+    
     INPUTS:
-        - hia_df: dataframe of health impacts
-        - ca_shp_fp: california shapefile filepath
-        - group: racial/ethnic group
-        - output_dir: directory to output the plot into
-        - f_out: filename
+        - hia_df: a dataframe containing excess mortality for the `endpoint` using the `function`
+          provided
+        - ca_shp_fp: a filepath string of the California state boundary shapefile
+        - group: the racial/ethnic group name
+        - endpoint: a string containing either 'ALL CAUSE', 'ISCHEMIC HEART DISEASE', or 
+          'LUNG CANCER'
+        - output_dir: a filepath string of the location of the output directory
+        - f_out: the name of the file output category (will append additional information) 
+        - verbose: a Boolean indicating whether or not detailed logging statements should 
+          be printed
+        
+    OUTPUTS:
+        - fname: a string filename made by combining the `f_out` with the `group`
+          and `endpoint`.
+          
     '''
     if verbose:
         logging.info('   - Drawing plot of excess {} mortality from PM2.5 exposure.'.format(endpoint.lower()))
@@ -220,11 +265,22 @@ def plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out, 
 def export_health_impacts(hia_df, group, endpoint, output_dir, f_out, verbose):
     ''' 
     Plots mortality as a shapefile. 
+    
     INPUTS:
-        - hia_df: dataframe of health impacts
-        - group: racial/ethnic group
-        - output_dir: directory to output the plot into
-        - f_out: filename
+        - hia_df: a dataframe containing excess mortality for the `endpoint` using the 
+          `function` provided
+        - group: the racial/ethnic group name
+        - endpoint: a string containing either 'ALL CAUSE', 'ISCHEMIC HEART DISEASE', or 
+          'LUNG CANCER'
+        - output_dir: a filepath string of the location of the output directory
+        - f_out: the name of the file output category (will append additional information) 
+        - verbose: a Boolean indicating whether or not detailed logging statements should 
+          be printed  
+        
+    OUTPUTS:
+        - fname: a string filename made by combining the `f_out` with the `group`
+          and `endpoint`.
+        
     '''
     if verbose:
         logging.info('   - Exporting excess {} mortality from PM2.5 exposure as a shapefile.'.format(endpoint.lower()))
@@ -264,7 +320,26 @@ def export_health_impacts(hia_df, group, endpoint, output_dir, f_out, verbose):
     return fname
 
 def visualize_and_export_hia(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out, shape_out, verbose):
-    ''' Automates this process a bit '''    
+    ''' 
+    Automates this process a bit.
+    
+    INPUTS:
+        - hia_df: a dataframe containing excess mortality for the `endpoint` using the 
+          `function` provided
+        - ca_shp_fp: a filepath string of the California state boundary shapefile
+        - group: the racial/ethnic group name
+        - endpoint: a string containing either 'ALL CAUSE', 'ISCHEMIC HEART DISEASE', or 
+          'LUNG CANCER'
+        - output_dir: a filepath string of the location of the output directory
+        - f_out: the name of the file output category (will append additional information) 
+        - shape_out: a filepath string for shapefiles
+        - verbose: a Boolean indicating whether or not detailed logging statements should 
+          be printed      
+        
+    OUTPUTS:
+        - None
+    
+    '''    
     logging.info('- Visualizing and exporting excess {} mortality.'.format(endpoint.lower()))
     # Plot the map of mortality
     fname = plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out, verbose)
