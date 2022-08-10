@@ -222,6 +222,7 @@ The `control_file` object is used to check and read the control file for a run:
 * `emissions_path`: a string representing the path to the emissions input file
 * `emissions_units`: a string representing the units of the emissions data
 * `check`: a Boolean indicating whether the program should run, or if it should just check the inputs (useful for debugging)
+* `population_path`: a string representing the path to the population data file
 * `verbose`: a Boolean indicating whether the user wants to run in verbose mode
 * `output_exposure`: a Boolean indicating whether exposure should be output
 
