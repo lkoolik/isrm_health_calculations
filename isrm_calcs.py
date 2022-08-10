@@ -4,7 +4,7 @@
 Main Run File
 
 @author: libbykoolik
-Last updated: 2022-07-27
+Last updated: 2022-08-10
 """
 #%% Import useful libraries, supporting objects, and scripts
 # Useful libraries for main script
@@ -58,6 +58,7 @@ else: # load all the control file info
     name = cf.run_name
     emissions_path = cf.emissions_path
     units = cf.emissions_units
+    population_path = cf.population_path
     run_health = cf.run_health
     race_stratified = cf.race_stratified
     check = cf.check
@@ -81,7 +82,7 @@ shutil.copy(args.inputs, output_dir)
 isrm_fps = ['./data/ISRM_NH3.npy','./data/ISRM_NOX.npy','./data/ISRM_PM25.npy',
             './data/ISRM_SOX.npy','./data/ISRM_VOC.npy']
 isrm_gfp = './data/isrm_geo_test.feather'
-population_path = './data/ca2000.feather'
+#population_path = './data/ca2000.feather'
 ca_shp_path = './data/ca_border.feather'
 output_geometry_fps = {'AB': './data/air_basins.feather',
                        'AD': './data/air_districts.feather',
