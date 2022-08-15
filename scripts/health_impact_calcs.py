@@ -4,7 +4,7 @@
 Health Impact Functions
 
 @author: libbykoolik
-last modified: 2022-08-01
+last modified: 2022-08-10
 """
 
 # Import Libraries
@@ -118,8 +118,8 @@ def calculate_excess_mortality(conc, health_data_obj, endpoint, function, verbos
     if verbose:
         logging.info('   - Adding population data back in for per capita calculations.')
         
-    pop = health_data_obj.population.groupby('ROW')[['ASIAN','BLACK','HISLA','INDIG','WHITE','TOTAL']].sum().reset_index()
-    pop_inc_conc = pd.merge(pop_inc_conc, pop, left_on='ISRM_ID', right_on='ROW', how='left')
+    pop = health_data_obj.population.groupby('ISRM_ID')[['ASIAN','BLACK','HISLA','INDIG','WHITE','TOTAL']].sum().reset_index()
+    pop_inc_conc = pd.merge(pop_inc_conc, pop, left_on='ISRM_ID', right_on='ISRM_ID', how='left')
     pop_inc_conc = pop_inc_conc.fillna(0)
     
     # Final Clean Up

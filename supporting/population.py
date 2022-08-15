@@ -4,7 +4,7 @@
 Population Data Object
 
 @author: libbykoolik
-last modified: 2022-08-01
+last modified: 2022-08-10
 """
 
 # Import Libraries
@@ -33,10 +33,13 @@ class population:
     CALCULATES:
         - valid_file: a Boolean indicating whether or not the file provided is valid
         - geometry: geospatial information associated with the emissions input
-        - pop_data: complete, detailed population data from the source
+        - pop_all: complete, detailed population data from the source
+        - pop_geo: a geodataframe with population IDs and spatial information
         - crs: the inherent coordinate reference system associated with the emissions input
-        - pop_gdf: a geodataframe containing the population information with associated 
-          spatial information
+        - pop_exp: a geodataframe containing the population information with associated 
+          spatial information, summarized across age bins
+        - pop_hia: a geodataframe containing the population information with associated
+          spatial information, broken out by age bin
           
     EXTERNAL FUNCTIONS:
         - allocate_population: reallocates population into new geometry using a 
@@ -65,7 +68,9 @@ class population:
         # Read in the data
         if self.load_file == True and self.valid_file:
             verboseprint('- Attempting to load the population data. This step may take some time.')
-            self.geometry, self.pop_data, self.crs, self.pop_gdf = self.load_population()
+            self.pop_all, self.pop_geo, self.crs = self.load_population()
+            self.pop_exp = self.make_pop_exp()
+            self.pop_hia = self.make_pop_hia()
             verboseprint('- Population successfully loaded.')        
             
     def __str__(self):
@@ -84,50 +89,83 @@ class population:
     def load_population(self):
         ''' Loads the population file, depending on the extension ''' 
         # Based on the file extension, run different load functions
-        if self.file_type == 'feather':
-            geometry, pop_data, crs, pop_gdf = self.load_feather()
+        if self.file_type == 'shp':
+            pop_all = self.load_shp()
         
-        return geometry, pop_data, crs, pop_gdf
+        if self.file_type == 'feather':
+            pop_all = self.load_feather()
+            
+        # Create a variable that is just geometry and IDs
+        pop_geo = pop_all[['POP_ID','geometry']].copy().drop_duplicates()
+        pop_crs = pop_geo.crs
+        
+        return pop_all, pop_geo, pop_crs
     
+    def load_shp(self):
+        ''' Loads population data from a shapefile. '''
+        # Shapefiles are read using geopandas
+        pop_all = gpd.read_file(self.file_path)
+        
+        return pop_all
                 
     def load_feather(self):
-        ''' 
-        Loads population data from a feather file.
-        
-        '''
+        ''' Loads population data from a feather file. '''
         # Feather file is read using geopandas
-        pop_gdf = gpd.read_feather(self.file_path)
-        pop_gdf['POP_ID'] = 'POP_'+pop_gdf.index.astype(str)
-        pop_gdf.columns = pop_gdf.columns.str.upper()
-        pop_gdf.rename(columns={'GEOMETRY':'geometry'}, inplace=True)
+        pop_all = gpd.read_feather(self.file_path)
         
-        # Split off geometry from emissions data
-        geometry = pop_gdf[['POP_ID','geometry']].copy()
-        pop_data = pd.DataFrame(pop_gdf.drop(columns='geometry'))
-        
-        # Separately save the coordinate reference system
-        crs = pop_gdf.crs
-        
-        return geometry, pop_data, crs, pop_gdf
+        return pop_all
 
+    def make_pop_exp(self):
+        ''' Creates the population exposure object '''
+        # Create a copy of the population data to avoid overwriting
+        pop_tmp = self.pop_all.copy()
+        
+        ## Create the exposure calculation population object
+        # For the exposure calculations, we do not need the age bins
+        pop_exp = pop_tmp[['POP_ID', 'YEAR', 'TOTAL', 'ASIAN', 'BLACK', 'HISLA', 
+                           'INDIG', 'PACIS', 'WHITE', 'OTHER']].copy()
+        
+        # Sum across POP_ID and YEAR
+        pop_exp = pop_exp.groupby(['POP_ID','YEAR'])[['TOTAL', 'ASIAN', 'BLACK', 
+                                                      'HISLA', 'INDIG', 'PACIS', 
+                                                      'WHITE', 'OTHER']].sum().reset_index()
+        
+        # Add geometry back in
+        pop_exp = pd.merge(self.pop_geo, pop_exp, on='POP_ID')
+        
+        return pop_exp
     
-    def project_pop(self, new_crs):
+    def make_pop_hia(self):
+        ''' Creates the population exposure object for hia calculations '''
+        # Creates a copy of the population data to avoid overwriting
+        pop_hia = self.pop_all.copy()
+        
+        # Simple update
+        pop_hia['START_AGE'] = pop_hia['START_AGE'].astype(int)
+        pop_hia['END_AGE'] = pop_hia['END_AGE'].astype(int)
+        
+        return pop_hia
+
+    def project_pop(self, pop_obj, new_crs):
         ''' Projects the population data into a new crs '''
-        pop_gdf_prj = self.pop_gdf.to_crs(new_crs)
+        pop_obj_prj = pop_obj.to_crs(new_crs)
     
-        return pop_gdf_prj
+        return pop_obj_prj
     
-    def allocate_population(self, new_geometry, new_geometry_ID):
+    def allocate_population(self, pop_obj, new_geometry, new_geometry_ID, hia_flag):
         ''' Reallocates the population into the new geometry using a spatial intersect '''
         if self.verbose:
-            logging.info('- Allocating population from Census tracts to ISRM grid cells.')
+            if hia_flag:
+                logging.info('- Allocating age-stratified population from population input file to ISRM grid cells.')
+            else:
+                logging.info('- Allocating total population from population input file to ISRM grid cells.')
         
         # Confirm that the coordinate reference systems match
         #assert pop_tmp.crs == new_geometry.crs, 'Coordinate reference system does not match. Population cannot be reallocated'
         if self.crs == new_geometry.crs:
-            pop_tmp = self.pop_gdf.copy(deep=True)
+            pop_tmp = pop_obj.copy(deep=True)
         else:
-            pop_tmp = self.project_pop(new_geometry.crs)
+            pop_tmp = self.project_pop(pop_obj, new_geometry.crs)
         
         # Add the land area as a feature of this dataframe
         pop_tmp['AREA_M2'] = pop_tmp.geometry.area/(1000.*1000.)
@@ -145,9 +183,17 @@ class population:
         cols = ['TOTAL', 'ASIAN', 'BLACK', 'HISLA', 'INDIG', 'PACIS', 'WHITE','OTHER']
         for c in cols:
             intersect[c] = intersect[c] * intersect['AREA_FRAC']
-            
+        
+        # Perform two updates if doing this for hia
+        if hia_flag:
+            for c in cols:
+                intersect[c] = intersect[c] * 19.0
+            gb_cols = [new_geometry_ID] + ['START_AGE','END_AGE']
+        else:
+            gb_cols = [new_geometry_ID]
+        
         # Sum across new geometry grid cells
-        new_alloc_pop = intersect.groupby([new_geometry_ID])[cols].sum().reset_index()
+        new_alloc_pop = intersect.groupby(gb_cols)[cols].sum().reset_index()
         
         # Merge back into the new geometry using the new_geometry_ID
         new_alloc_pop = new_geometry.merge(new_alloc_pop, how='left',
@@ -159,10 +205,16 @@ class population:
         
         # Confirm that the population slipt was close
         old_pop_total = pop_tmp[cols].sum()
-        new_pop_total = pop_tmp[cols].sum()
+        new_pop_total = new_alloc_pop[cols].sum()
         
         for c in cols:
             assert np.isclose(old_pop_total[c], new_pop_total[c])
+            
+        # For the hia population, do one last step:
+        if hia_flag:
+            new_alloc_pop = new_alloc_pop[~new_alloc_pop['START_AGE'].isna()]
+            new_alloc_pop['START_AGE'] = new_alloc_pop['START_AGE'].astype(int)
+            new_alloc_pop['END_AGE'] = new_alloc_pop['START_AGE'].astype(int)
         
         # Print statement
         if self.verbose:

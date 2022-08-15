@@ -4,7 +4,7 @@
 Health Impact Function Meta Data Object
 
 @author: libbykoolik
-last modified: 2022-08-01
+last modified: 2022-08-10
 """
 
 # Import Libraries
@@ -25,10 +25,9 @@ class health_data:
     Defines a new object for storing and manipulating health impact input data.
     
     INPUTS:
-        - filepath_dict: a dictionary with the filepaths of each input feather.
-          Should have the following keys:
-              (1) POPULATION
-              (2) INCIDENCE
+        - pop_alloc: a geodataframe of population allocated to the ISRM grid geometry
+        - incidence_fp: a string containing the file path to the background incidence 
+          dataset
         - verbose: a Boolean enabling more detailed output statements
         - race_stratified: Boolean indicating whether race-stratified incidence
           rates should be used
@@ -40,27 +39,24 @@ class health_data:
           data based on the requested geographies
         
     '''
-    def __init__(self, filepath_dict, verbose, race_stratified):
+    def __init__(self, pop_alloc, incidence_fp, verbose, race_stratified):
         ''' Initializes the Health Input object'''   
         logging.info('\n << Loading BenMAP Health Inputs >>')
+        
         # Get object metadata
-        self.filepath_dict = filepath_dict
         self.verbose = verbose
         verboseprint = logging.info if self.verbose else lambda *a, **k:None # for logging
         verboseprint('- Downloading the input data for calculating excess mortality.')
         self.race_stratified = race_stratified
 
-        # Add source information (hard-coded for now)
-        self.population_source = 'US 2010 Census County Level from BenMAP CE reallocated to the ISRM grid'
-        if not self.race_stratified:
-            self.incidence_source = 'Mortality Incidence (2010) from BenMAP CE'
-        else:
-            self.incidence_source = 'Race-Strafified Mortality Incidence (2007-16) from BenMAP CE'
+        # Add input data
+        self.population = pop_alloc
+        self.incidence_fp = incidence_fp
         
         # Initialize object by loading the health data
-        self.population, self.incidence = self.load_data()
-        verboseprint('- Population data (source: {}) successfully imported.'.format(self.population_source))
-        verboseprint('- Incidence data (source: {}) successfully imported.'.format(self.incidence_source))
+        self.incidence = self.load_data()
+        verboseprint('- Population data successfully imported.')
+        verboseprint('- Incidence data successfully imported.')
         
         # Combine the population and incidence data into one dataframe
         verboseprint('- Combining population and incidence data for health calculations. This step may take some time.')
@@ -74,20 +70,19 @@ class health_data:
         return '< Health impact object.>'
     
     def load_data(self):
-        ''' Loads population and incidence data from feather files. '''
+        ''' Loads incidence data from feather file. '''
         data_dict = {}
         
         # Get filepaths from the filepath dictionary
-        population = gpd.read_feather(self.filepath_dict['POPULATION'])
-        incidence = gpd.read_feather(self.filepath_dict['INCIDENCE'])
+        incidence = gpd.read_feather(self.incidence_fp)
         
-        return population, incidence
+        return incidence
     
    
     def update_pop(self, population):
         ''' Performs a few population dataset updates before combining '''
         # Un-pivot the population data to have separate columns for RACE and POPULATION
-        population = population.melt(id_vars=['ROW','START_AGE', 'END_AGE','geometry'], 
+        population = population.melt(id_vars=['ISRM_ID','START_AGE', 'END_AGE','geometry'], 
                                      value_vars=['ASIAN','BLACK','HISLA','INDIG',
                                                  'WHITE','TOTAL'], 
                                      var_name='RACE', value_name='POPULATION', 
@@ -159,7 +154,7 @@ class health_data:
     def incidence_by_age(self, incidence, population):
         ''' Create a smaller incidence lookup tables for merging '''
         # Get an array of the start ages that increment by 1 only
-        start_ages = pd.DataFrame({'START_AGE':range(population['END_AGE'].max())})
+        start_ages = pd.DataFrame({'START_AGE':range(int(population['END_AGE'].max()))})
         
         # Get a dataframe of the 'NAME' and 'RACE' combination *** TO ADD RACE
         incidence_names = incidence[['NAME']].drop_duplicates()

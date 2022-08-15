@@ -4,7 +4,7 @@
 Control File Reading Object
 
 @author: libbykoolik
-last modified: 2022-08-01
+last modified: 2022-08-10
 """
 
 # Import Libraries
@@ -36,6 +36,7 @@ class control_file:
         - run_name: a string representing the run name preferred by the user
         - emissions_path: a string representing the path to the emissions input file
         - emissions_units: a string representing the units of the emissions data
+        - population_path: a string representing the path to the population data file
         - check: a Boolean indicating whether the program should run, or if it should just 
           check the inputs (useful for debugging)
         - verbose: a Boolean indicating whether the user wants to run in verbose mode
@@ -52,13 +53,13 @@ class control_file:
         
         # Hardcode the current keywords for simplicity
         self.keywords = ['BATCH_NAME', 'RUN_NAME','EMISSIONS_FILENAME',
-                         'EMISSIONS_UNITS', 'RUN_HEALTH', 'RACE_STRATIFIED_INCIDENCE',
-                         'CHECK_INPUTS','VERBOSE',
+                         'EMISSIONS_UNITS', 'POPULATION_FILENAME', 'RUN_HEALTH', 
+                         'RACE_STRATIFIED_INCIDENCE', 'CHECK_INPUTS','VERBOSE',
                          'REGION_OF_INTEREST','REGION_CATEGORY','OUTPUT_RESOLUTION',
                          'OUTPUT_EXPOSURE']
         self.blanks_okay = [True, True, False, 
-                            False, True, True, 
-                            True, True,
+                            False, False, True, 
+                            True, True, True,
                             True, True, True,
                             True]
         
@@ -70,7 +71,7 @@ class control_file:
             
         # If checks are good, import values
         if self.valid_structure and self.no_incorrect_blanks and self.valid_file:
-            self.batch_name, self.run_name, self.emissions_path, self.emissions_units, self.run_health, self.race_stratified, self.check, self.verbose, self.region_of_interest, self.region_category, self.output_resolution, self.output_exposure = self.get_all_inputs()
+            self.batch_name, self.run_name, self.emissions_path, self.emissions_units, self.population_path, self.run_health, self.race_stratified, self.check, self.verbose, self.region_of_interest, self.region_category, self.output_resolution, self.output_exposure = self.get_all_inputs()
             self.valid_inputs = self.check_inputs()
             if self.valid_inputs:
                 logging.info('\n << Control file was successfully imported and inputs are correct >>')
@@ -82,11 +83,11 @@ class control_file:
             if not self.valid_structure:
                 logging.info('\n * Control file did not have the correct structure.')
                 logging.info('* Please confirm that the control file has the following keywords exactly once each:')
-                logging.info('   * '+'\n   * '.join(self.keywords))
+                logging.info('  * '+'\n   * '.join(self.keywords))
             if not self.no_incorrect_blanks:
                 logging.info('* Some keywords were left blank incorrectly in the control file.')
                 logging.info('* Only the following keywords can be left blank:')
-                logging.info('   * '+'\n   * '.join(pd.Series(self.keywords)[self.blanks_okay].tolist()))
+                logging.info('  * '+'\n   * '.join(pd.Series(self.keywords)[self.blanks_okay].tolist()))
             if not self.valid_file:
                 logging.info('* The control file path is not valid.')
             
@@ -146,17 +147,20 @@ class control_file:
         # Combine for test #1 output
         valid_structure = all_keywords & correct_count
         
-        ## (TEST 2) Check for blank inputs
-        incorrect_blanks = 0 # holder for incorrect blanks
-        for line in open(self.file_path):
-            for k in zip(self.keywords, self.blanks_okay):
-                if k[1]: # If blanks are okay, ignore
-                    pass
-                else:
-                    line_val = self.get_input_value(k[0])
-                    if line_val == '': # Blanks will report as ''
-                        incorrect_blanks += 1 # Add to holder
-        no_incorrect_blanks = incorrect_blanks == 0
+        if not valid_structure:
+            return valid_structure, None
+        else:
+            ## (TEST 2) Check for blank inputs
+            incorrect_blanks = 0 # holder for incorrect blanks
+            for line in open(self.file_path):
+                for k in zip(self.keywords, self.blanks_okay):
+                    if k[1]: # If blanks are okay, ignore
+                        pass
+                    else:
+                        line_val = self.get_input_value(k[0])
+                        if line_val == '': # Blanks will report as ''
+                            incorrect_blanks += 1 # Add to holder
+            no_incorrect_blanks = incorrect_blanks == 0
 
         return valid_structure, no_incorrect_blanks
     
@@ -170,6 +174,7 @@ class control_file:
         run_name = self.get_input_value('RUN_NAME')
         emissions_path = self.get_input_value('EMISSIONS_FILENAME')
         emissions_units = self.get_input_value('EMISSIONS_UNITS')
+        population_path = self.get_input_value('POPULATION_FILENAME')
         run_health = self.get_input_value('RUN_HEALTH', upper=True)
         race_stratified = self.get_input_value('RACE_STRATIFIED_INCIDENCE', upper=True)
         region_of_interest = self.get_input_value('REGION_OF_INTEREST', upper=True)
@@ -224,7 +229,7 @@ class control_file:
         else:
             output_exposure = mapper[output_exposure]
         
-        return batch_name, run_name, emissions_path, emissions_units, run_health, race_stratified, check, verbose, region_of_interest, region_category, output_resolution, output_exposure
+        return batch_name, run_name, emissions_path, emissions_units, population_path, run_health, race_stratified, check, verbose, region_of_interest, region_category, output_resolution, output_exposure
     
     def get_region_dict(self):
         ''' Hard-coded dictionary of acceptable values for regions '''
@@ -344,11 +349,12 @@ class control_file:
         if self.batch_name == '' and self.run_name == '':
             self.batch_name = 'isrm_calcs'
         
-        ## (3) Check the emissions path
+        ## (3) Check the emissions path and units
+        # Path checks:
         valid_emissions_path = self.check_path(file=self.emissions_path)
         logging.info('* The emissions path provided is not valid.') if not valid_emissions_path else ''
         
-        ## (4) Check the emissions units
+        # Units checks:
         mass_units = ['ug','g','lb','ton','mt','kg'] # mass units from emissions.py
         time_units = ['s','min','hr','day','yr'] # time units from emissions.py
 
@@ -359,6 +365,10 @@ class control_file:
         logging.info('* The emissions units provided is not valid. Acceptable mass emissions units are '+', '.join(mass_units)\
               +' and acceptable time units are '+', '.join(time_units)) if not valid_emissions_units else ''
         
+        ## (4) Check the population path
+        valid_population_path = self.check_path(file=self.population_path)
+        logging.info('* The population path provided is not valid.') if not valid_population_path else ''
+            
         ## (5) Check the HEALTH RUN CONTROLS
         valid_run_health = type(self.run_health) == bool
         logging.info('* The run health option provided is not valid. Use Y or N or leave blank.') if not valid_run_health else ''
@@ -387,9 +397,8 @@ class control_file:
         
         ## Output only one time
         valid_inputs = valid_batch_name and valid_run_name and valid_emissions_path and \
-            valid_emissions_units and valid_run_health and valid_inc_choice and \
-                valid_check and valid_verbose and valid_region_category and \
-                    valid_region_of_interest and valid_output_resolution and \
-                        valid_output_exp
+            valid_emissions_units and valid_population_path and valid_run_health and \
+                valid_inc_choice and valid_check and valid_verbose and valid_region_category and \
+                    valid_region_of_interest and valid_output_resolution and valid_output_exp
 
         return valid_inputs

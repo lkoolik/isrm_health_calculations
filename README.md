@@ -9,6 +9,7 @@ Last modified August 1, 2022
 * Purpose and Goals ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#purpose-and-goals))
 * Methodology ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#methodology))
 * Code Details ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#code-details))
+* Running the Tool ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#running-the-tool))
 
 ----
 
@@ -16,6 +17,8 @@ Last modified August 1, 2022
 The Intervention Model for Air Pollution (InMAP) is a powerful first step towards lowering key technical barriers by making simplifying assumptions that allow for streamlined predictions of PM<sub>2.5</sub> concentrations resulting from emissions-related policies or interventions.\[[*](https://doi.org/10.1371/journal.pone.0176131)\] InMAP performance has been validated against observational data and WRF-Chem, and has been used to perform source attribution and exposure disparity analyses.\[[*](https://doi.org/10.1126/sciadv.abf4491), [*](https://doi.org/10.1073/pnas.1816102116), [*](https://doi.org/10.1073/pnas.1818859116)\] The InMAP Source-Receptor Matrix (ISRM) was developed by running the full InMAP model tens of thousands of times to understand how a unit perturbation of emissions from each grid cell affects concentrations across the grid. However, both InMAP and the ISRM require considerable computational and math proficiency to run and an understanding of various atmospheric science principles to interpret. Furthermore, estimating health impacts requires additional knowledge and calculations beyond InMAP. Thus, a need arises for a standalone and user-friendly process for comparing air quality health disparities associated with various climate change policy scenarios.
 
 The ultimate goal of this repository is to create a pipeline for estimating disparities in health impacts associated with incremental changes in emissions. Annual average PM<sub>2.5</sub> concentrations are estimated using the [InMAP Source Receptor Matrix](https://www.pnas.org/doi/full/10.1073/pnas.1816102116) for California.
+
+----
 
 ## Methodology ##
 The ISRM Health Calculation model works by a series of two modules. First, the model estimates annual average change in PM<sub>2.5</sub> concentrations as part of the **Concentration Module**. Second, the excess mortality resulting from the concentration change is calculated in the **Health Module**.
@@ -222,6 +225,7 @@ The `control_file` object is used to check and read the control file for a run:
 * `emissions_path`: a string representing the path to the emissions input file
 * `emissions_units`: a string representing the units of the emissions data
 * `check`: a Boolean indicating whether the program should run, or if it should just check the inputs (useful for debugging)
+* `population_path`: a string representing the path to the population data file
 * `verbose`: a Boolean indicating whether the user wants to run in verbose mode
 * `output_exposure`: a Boolean indicating whether exposure should be output
 
@@ -354,7 +358,7 @@ The `isrm` object loads, stores, and manipulates the ISRM grid data.
 * `map_isrm`: simple function for mapping the ISRM grid cells
 
 #### `population.py` 
-The `population` object stores detailed Census tract-level population data for the environmental justice exposure calculations.
+The `population` object stores detailed Census tract-level population data for the environmental justice exposure calculations and the health impact calculations from an input population dataset.
 
 *Inputs*
 * `file_path`: the file path of the raw population data
@@ -364,14 +368,18 @@ The `population` object stores detailed Census tract-level population data for t
 *Attributes*
 * `valid_file`: a Boolean indicating whether or not the file provided is valid
 * `geometry`: geospatial information associated with the emissions input
-* `pop_data`: complete, detailed population data from the source
+* `pop_all`: complete, detailed population data from the source
+* `pop_geo`: a geodataframe with population IDs and spatial information
 * `crs`: the inherent coordinate reference system associated with the emissions input
-* `pop_gdf`: a geodataframe containing the population information with associated spatial information
+* `pop_exp`: a geodataframe containing the population information with associated spatial information, summarized across age bins
+* `pop_hia`: a geodataframe containing the population information with associated spatial information, broken out by age bin
 
 *Internal Functions*
 * `check_path`: checks to see if the file exists at the path specified and returns whether the file is valid
 * `load_population`: loads the population data based on the file extension
+* `load_shp`: loads the population shapefile data using geopandas and post-processes
 * `load_feather`: loads the population feather data using geopandas and post-processes
+* `split_pop_objs`: creates the pop_exp and pop_hia objects from pop_all
 
 *External Functions*
 * `project_pop`: projects the population data to a new coordinate reference system
@@ -624,3 +632,24 @@ The `tool_utils` library contains a handful of scripts that are useful for code 
          1. Gets the filepath of the output region based on the `region_category` from the `output_geometry_fps` dictionary.
          2. Reads in the file as a geodataframe.
          3. Clips the geodataframe to the `region_of_interest`.
+
+----
+
+## Running the Tool
+
+(This section is currently a work in progress)
+
+### Input Files
+There are two main input files for the ISRM Tool: the emissions input file and the population input file.
+
+#### Emissions Input File
+...
+
+#### Population Input File
+The population input file can be either a feather file or a shapefile. The population file should have the following fields:
+* `YEAR`: the year of the data (for record keeping)
+* `GROUP`: the racial/ethnic group name, which should be one of the following list: ASIAN, BLACK, HISLA, INDIG, OTHER, PACIS, WHITE
+* `AGE_BIN`: the age bin for the population group, which should include 0TO0, followed by 5 year increments (e.g., 1TO4, 5TO9) until 85UP.
+* `POPULATION`: the number of people in that `GROUP`, `AGE_BIN`, and `geometry`.
+* (optional, depending on creation method) `geometry`: a field describing the polygon shapes. This is auto-generated for a shapefile in geopandas and should not be manually added.
+
