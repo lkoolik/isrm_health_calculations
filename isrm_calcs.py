@@ -87,8 +87,7 @@ ca_shp_path = './data/ca_border.feather'
 output_geometry_fps = {'AB': './data/air_basins.feather',
                        'AD': './data/air_districts.feather',
                        'C': './data/counties.feather'}
-hia_input_fps = {'POPULATION': './data/benmap_population_new.feather',
-                  'INCIDENCE': './data/benmap_incidence.feather'}
+incidence_fp = './data/benmap_incidence.feather'
 
 # Define output region based on region_of_interest and region_category
 output_region = get_output_region(region_of_interest, region_category, output_geometry_fps, ca_shp_path)
@@ -132,11 +131,11 @@ if __name__ == "__main__":
         ## Perform concentration-related EJ analyses
         # Create a population object and intersect population with concentrations
         pop = population(population_path, load_file=True, verbose=verbose)
-        pop_alloc = pop.allocate_population(isrmgrid.geodata, 'ISRM_ID')
+        exp_pop_alloc = pop.allocate_population(pop.pop_exp, isrmgrid.geodata, 'ISRM_ID', False)
         
         # Create the exposure dataframe and run EJ functions
         logging.info('\n << Beginning Exposure EJ Calculations >>')
-        exposure_gdf, exposure_pctl, exposure_disparity = run_exposure_calcs(conc, pop_alloc, verbose)    
+        exposure_gdf, exposure_pctl, exposure_disparity = run_exposure_calcs(conc, exp_pop_alloc, verbose)    
         if output_exposure:
             export_exposure(exposure_gdf, shape_out, f_out)
         
@@ -150,7 +149,8 @@ if __name__ == "__main__":
             logging.info('╙────────────────────────────────╜\n')
             
             # Create health input object
-            hia_inputs = health_data(hia_input_fps, verbose=verbose, race_stratified=False)
+            hia_pop_alloc = pop.allocate_population(pop.pop_all, isrmgrid.geodata, 'ISRM_ID', True)
+            hia_inputs = health_data(hia_pop_alloc, incidence_fp, verbose=verbose, race_stratified=False)
             
             # Estimate excess mortality
             logging.info('\n << Estimating Excess Mortality for Three Endpoints >>')

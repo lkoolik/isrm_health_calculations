@@ -69,7 +69,8 @@ class population:
         if self.load_file == True and self.valid_file:
             verboseprint('- Attempting to load the population data. This step may take some time.')
             self.pop_all, self.pop_geo, self.crs = self.load_population()
-            self.pop_exp, self.pop_hia = self.split_pop_objs()
+            self.pop_exp = self.make_pop_exp()
+            self.pop_hia = self.make_pop_hia()
             verboseprint('- Population successfully loaded.')        
             
     def __str__(self):
@@ -114,8 +115,8 @@ class population:
         
         return pop_all
 
-    def split_pop_objs(self):
-        ''' '''
+    def make_pop_exp(self):
+        ''' Creates the population exposure object '''
         # Create a copy of the population data to avoid overwriting
         pop_tmp = self.pop_all.copy()
         
@@ -132,11 +133,18 @@ class population:
         # Add geometry back in
         pop_exp = pd.merge(self.pop_geo, pop_exp, on='POP_ID')
         
-        ## Create the health impact calculation population object
-        # TBD
-        pop_hia=...
+        return pop_exp
+    
+    def make_pop_hia(self):
+        ''' Creates the population exposure object for hia calculations '''
+        # Creates a copy of the population data to avoid overwriting
+        pop_hia = self.pop_all.copy()
         
-        return pop_exp, pop_hia
+        # Simple update
+        pop_hia['START_AGE'] = pop_hia['START_AGE'].astype(int)
+        pop_hia['END_AGE'] = pop_hia['END_AGE'].astype(int)
+        
+        return pop_hia
 
     def project_pop(self, pop_obj, new_crs):
         ''' Projects the population data into a new crs '''
@@ -144,17 +152,20 @@ class population:
     
         return pop_obj_prj
     
-    def allocate_population(self, new_geometry, new_geometry_ID):
+    def allocate_population(self, pop_obj, new_geometry, new_geometry_ID, hia_flag):
         ''' Reallocates the population into the new geometry using a spatial intersect '''
         if self.verbose:
-            logging.info('- Allocating population from Census tracts to ISRM grid cells.')
+            if hia_flag:
+                logging.info('- Allocating age-stratified population from population input file to ISRM grid cells.')
+            else:
+                logging.info('- Allocating total population from population input file to ISRM grid cells.')
         
         # Confirm that the coordinate reference systems match
         #assert pop_tmp.crs == new_geometry.crs, 'Coordinate reference system does not match. Population cannot be reallocated'
         if self.crs == new_geometry.crs:
-            pop_tmp = self.pop_exp.copy(deep=True)
+            pop_tmp = pop_obj.copy(deep=True)
         else:
-            pop_tmp = self.project_pop(self.pop_exp, new_geometry.crs)
+            pop_tmp = self.project_pop(pop_obj, new_geometry.crs)
         
         # Add the land area as a feature of this dataframe
         pop_tmp['AREA_M2'] = pop_tmp.geometry.area/(1000.*1000.)
@@ -172,9 +183,17 @@ class population:
         cols = ['TOTAL', 'ASIAN', 'BLACK', 'HISLA', 'INDIG', 'PACIS', 'WHITE','OTHER']
         for c in cols:
             intersect[c] = intersect[c] * intersect['AREA_FRAC']
-            
+        
+        # Perform two updates if doing this for hia
+        if hia_flag:
+            for c in cols:
+                intersect[c] = intersect[c] * 19.0
+            gb_cols = [new_geometry_ID] + ['START_AGE','END_AGE']
+        else:
+            gb_cols = [new_geometry_ID]
+        
         # Sum across new geometry grid cells
-        new_alloc_pop = intersect.groupby([new_geometry_ID])[cols].sum().reset_index()
+        new_alloc_pop = intersect.groupby(gb_cols)[cols].sum().reset_index()
         
         # Merge back into the new geometry using the new_geometry_ID
         new_alloc_pop = new_geometry.merge(new_alloc_pop, how='left',
@@ -186,16 +205,19 @@ class population:
         
         # Confirm that the population slipt was close
         old_pop_total = pop_tmp[cols].sum()
-        new_pop_total = pop_tmp[cols].sum()
+        new_pop_total = new_alloc_pop[cols].sum()
         
         for c in cols:
             assert np.isclose(old_pop_total[c], new_pop_total[c])
+            
+        # For the hia population, do one last step:
+        if hia_flag:
+            new_alloc_pop = new_alloc_pop[~new_alloc_pop['START_AGE'].isna()]
+            new_alloc_pop['START_AGE'] = new_alloc_pop['START_AGE'].astype(int)
+            new_alloc_pop['END_AGE'] = new_alloc_pop['START_AGE'].astype(int)
         
         # Print statement
         if self.verbose:
             logging.info('- Census tract population data successfully re-allocated to the ISRM grid.')
         
         return new_alloc_pop
-    
-test_pop = '/Users/libbykoolik/Documents/Research/OEHHA Project/scripts/isrm_health_calculations/data/ca2010.feather'
-test = population(test_pop)
