@@ -25,10 +25,9 @@ class health_data:
     Defines a new object for storing and manipulating health impact input data.
     
     INPUTS:
-        - filepath_dict: a dictionary with the filepaths of each input feather.
-          Should have the following keys:
-              (1) POPULATION
-              (2) INCIDENCE
+        - pop_alloc: a geodataframe of population allocated to the ISRM grid geometry
+        - incidence_fp: a string containing the file path to the background incidence 
+          dataset
         - verbose: a Boolean enabling more detailed output statements
         - race_stratified: Boolean indicating whether race-stratified incidence
           rates should be used

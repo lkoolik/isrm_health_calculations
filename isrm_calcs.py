@@ -82,7 +82,6 @@ shutil.copy(args.inputs, output_dir)
 isrm_fps = ['./data/ISRM_NH3.npy','./data/ISRM_NOX.npy','./data/ISRM_PM25.npy',
             './data/ISRM_SOX.npy','./data/ISRM_VOC.npy']
 isrm_gfp = './data/isrm_geo_test.feather'
-#population_path = './data/ca2000.feather'
 ca_shp_path = './data/ca_border.feather'
 output_geometry_fps = {'AB': './data/air_basins.feather',
                        'AD': './data/air_districts.feather',
