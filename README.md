@@ -224,6 +224,7 @@ The `control_file` object is used to check and read the control file for a run:
 * `run_name`: a string representing the run name preferred by the user
 * `emissions_path`: a string representing the path to the emissions input file
 * `emissions_units`: a string representing the units of the emissions data
+* `population_path`: a string representing the path to the population input file
 * `check`: a Boolean indicating whether the program should run, or if it should just check the inputs (useful for debugging)
 * `population_path`: a string representing the path to the population data file
 * `verbose`: a Boolean indicating whether the user wants to run in verbose mode
@@ -299,16 +300,13 @@ The `emissions` object is primarily built off of `geopandas`. It has the followi
 The `health_data` object stores and manipulates built-in health data (population and incidence rates) from BenMAP. It inputs a dictionary of filepaths and two Boolean run options (`verbose` and `race_stratified`) to return dataframes of population, incidence, and combined population-incidence information (`pop_inc`).
 
 *Inputs*
-* `filepath_dict`: a dictionary with the filepaths of each input feather file, which must have "POPULATION" and "INCIDENCE" as keys
+* `pop_alloc`: a geodataframe of population allocated to the ISRM grid geometry
+* `incidence_fp`: a string containing the file path to the background incidence dataset
 * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed
 * `race_stratified`: a Boolean indicating whether race-stratified incidence rates should be used
 
-*Attributes*
-* `population_source`: string containing the source of the population data
-* `incidence_source`: string containing the source of the incidence data
-
 *Calculated Attributes*
-* `population`: a geodataframe containing the raw population data from BenMAP
+* `population`: a geodataframe containing the population allocated to the ISRM grid geometry
 * `incidence`: a geodataframe containing the raw incidence data from BenMAP
 * `pop_inc`: a geodataframe containing the combined population and incidence data based on the requested geographies
 
@@ -379,7 +377,8 @@ The `population` object stores detailed Census tract-level population data for t
 * `load_population`: loads the population data based on the file extension
 * `load_shp`: loads the population shapefile data using geopandas and post-processes
 * `load_feather`: loads the population feather data using geopandas and post-processes
-* `split_pop_objs`: creates the pop_exp and pop_hia objects from pop_all
+* `make_pop_exp`: makes the exposure population data frame by summing across age bins
+* `make_pop_hia`: makes the health impact assessment population data frame by retaining key information
 
 *External Functions*
 * `project_pop`: projects the population data to a new coordinate reference system
@@ -652,4 +651,3 @@ The population input file can be either a feather file or a shapefile. The popul
 * `AGE_BIN`: the age bin for the population group, which should include 0TO0, followed by 5 year increments (e.g., 1TO4, 5TO9) until 85UP.
 * `POPULATION`: the number of people in that `GROUP`, `AGE_BIN`, and `geometry`.
 * (optional, depending on creation method) `geometry`: a field describing the polygon shapes. This is auto-generated for a shapefile in geopandas and should not be manually added.
-
