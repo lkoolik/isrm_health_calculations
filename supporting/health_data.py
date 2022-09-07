@@ -60,7 +60,7 @@ class health_data:
         
         # Combine the population and incidence data into one dataframe
         verboseprint('- Combining population and incidence data for health calculations. This step may take some time.')
-        self.pop_inc, self.tmp = self.combine_pop_inc()
+        self.pop_inc = self.combine_pop_inc()
         verboseprint('- Population and incidence data succesfully combined and ready for health calculations.')
             
     def __str__(self):
@@ -71,8 +71,6 @@ class health_data:
     
     def load_data(self):
         ''' Loads incidence data from feather file. '''
-        data_dict = {}
-        
         # Get filepaths from the filepath dictionary
         incidence = gpd.read_feather(self.incidence_fp)
         
@@ -237,4 +235,4 @@ class health_data:
         pop_inc = pop_inc[['ISRM_ID', 'NAME', 'RACE', 'POPULATION','ALL CAUSE INC', 
                            'ISCHEMIC HEART DISEASE INC','LUNG CANCER INC','geometry']]
         
-        return pop_inc, lookup_dict
+        return pop_inc
