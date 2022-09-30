@@ -1,9 +1,9 @@
 # ISRM Health Calculations
-A repository of scripts used for converting emissions to concentrations and health impacts using the ISRM for California.
+A repository of scripts used for converting emissions to concentrations and health impacts using the ISRM for California. 
 
 *Libby Koolik, UC Berkeley*
 
-Last modified August 24, 2022
+Last modified September 30, 2022
 
 ## Table of Contents
 * Purpose and Goals ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#purpose-and-goals))
