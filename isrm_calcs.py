@@ -80,9 +80,6 @@ os.rename(tmp_logger, new_logger)
 shutil.copy(args.inputs, output_dir)
 
 # Define data variable file paths
-# isrm_fps = ['./data/ISRM_NH3.npy','./data/ISRM_NOX.npy','./data/ISRM_PM25.npy',
-#             './data/ISRM_SOX.npy','./data/ISRM_VOC.npy']
-# isrm_gfp = './data/isrm_geo_test.feather'
 ca_shp_path = './data/ca_border.feather'
 output_geometry_fps = {'AB': './data/air_basins.feather',
                        'AD': './data/air_districts.feather',
