@@ -4,7 +4,7 @@
 Main Run File
 
 @author: libbykoolik
-Last updated: 2022-08-10
+Last updated: 2022-10-24
 """
 #%% Import useful libraries, supporting objects, and scripts
 # Useful libraries for main script
@@ -58,6 +58,7 @@ else: # load all the control file info
     name = cf.run_name
     emissions_path = cf.emissions_path
     units = cf.emissions_units
+    isrm_path = cf.isrm_path
     population_path = cf.population_path
     run_health = cf.run_health
     race_stratified = cf.race_stratified
@@ -79,9 +80,6 @@ os.rename(tmp_logger, new_logger)
 shutil.copy(args.inputs, output_dir)
 
 # Define data variable file paths
-isrm_fps = ['./data/ISRM_NH3.npy','./data/ISRM_NOX.npy','./data/ISRM_PM25.npy',
-            './data/ISRM_SOX.npy','./data/ISRM_VOC.npy']
-isrm_gfp = './data/isrm_geo_test.feather'
 ca_shp_path = './data/ca_border.feather'
 output_geometry_fps = {'AB': './data/air_basins.feather',
                        'AD': './data/air_districts.feather',
@@ -99,7 +97,7 @@ if __name__ == "__main__":
         try:
             # Default to verbose since this mode is just for checking files
             emis = emissions(emissions_path, units=units, name=name, load_file=False, verbose=True)
-            isrmgrid = isrm(isrm_fps, isrm_gfp, output_region, region_of_interest, load_file=False, verbose=True)
+            isrmgrid = isrm(isrm_path, output_region, region_of_interest, load_file=False, verbose=True)
             pop = population(population_path, load_file=False, verbose=True)
             logging.info("\n<< Emissions, ISRM, and population files exist and are able to be imported. >>\n")
         except:
@@ -116,7 +114,7 @@ if __name__ == "__main__":
         
         ## Create emissions and ISRM objects
         emis = emissions(emissions_path, units=units, name=name, load_file=True, verbose=verbose)
-        isrmgrid = isrm(isrm_fps, isrm_gfp, output_region, region_of_interest, load_file=True, verbose=verbose)
+        isrmgrid = isrm(isrm_path, output_region, region_of_interest, load_file=True, verbose=verbose)
         
         ## Estimate concentrations
         conc = concentration(emis, isrmgrid, run_calcs=True, verbose=verbose)
