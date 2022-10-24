@@ -4,7 +4,7 @@
 ISRM Data Object
 
 @author: libbykoolik
-last modified: 2022-08-01
+last modified: 2022-10-24
 """
 
 # Import Libraries
@@ -24,9 +24,7 @@ class isrm:
     Defines a new object for storing and manipulating ISRM data.
     
     INPUTS:
-        - isrm_fps: a list of filepath strings for the NH3, NOx, PM25, SOX, 
-          and VOC paths, respectively
-        - isrm_gfp: a filepath string for the geometry feather of the ISRM grid
+        - isrm_path: a string representing the folder containing all ISRM data
         - output_region: a geodataframe of the region for results to be output, 
           as calculated by get_output_region in tool_utils.py
         - region_of_interest: the name of the region contained in the output_region
@@ -47,14 +45,14 @@ class isrm:
         - map_isrm: simple function for mapping the ISRM grid cells
     
     '''
-    def __init__(self, isrm_fps, isrm_gfp, output_region, region_of_interest, load_file=True, verbose=False):
+    def __init__(self, isrm_path, output_region, region_of_interest, load_file=True, verbose=False):
         ''' Initializes the ISRM object'''        
         logging.info('<< Reading ISRM Data >>')
         
         # Initialize paths and check that they are valid
         sys.path.append(os.path.realpath('..'))
-        self.nh3_path, self.nox_path, self.pm25_path, self.sox_path, self.voc_path = isrm_fps
-        self.geo_file_path = isrm_gfp
+        self.isrm_path = isrm_path
+        self.nh3_path, self.nox_path, self.pm25_path, self.sox_path, self.voc_path, self.geo_file_path = self.get_isrm_files()
         self.output_region = output_region
         self.region_of_interest = region_of_interest
         self.valid_file, self.valid_geo_file = self.check_path()
@@ -102,6 +100,17 @@ class isrm:
         return '< ISRM object >'
 
     
+    def get_isrm_files(self):
+        ''' Defines ISRM file paths from the ISRM_Path input '''
+        nh3_path = path.join(self.isrm_path,'ISRM_NH3.npy')
+        nox_path = path.join(self.isrm_path,'ISRM_NOX.npy')
+        pm25_path = path.join(self.isrm_path,'ISRM_PM25.npy')
+        sox_path = path.join(self.isrm_path,'ISRM_SOX.npy')
+        voc_path = path.join(self.isrm_path,'ISRM_VOC.npy')
+        geo_file_path = path.join(self.isrm_path, 'isrm_geo.feather')
+        
+        return nh3_path, nox_path, pm25_path, sox_path, voc_path, geo_file_path
+
     def check_path(self):
         ''' Checks if file exists at the path specified '''
         # Use the os library to check the path and the file

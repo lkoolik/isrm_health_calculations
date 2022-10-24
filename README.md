@@ -3,7 +3,7 @@ A repository of scripts used for converting emissions to concentrations and heal
 
 *Libby Koolik, UC Berkeley*
 
-Last modified September 30, 2022
+Last modified October 24, 2022
 
 ## Table of Contents
 * Purpose and Goals ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#purpose-and-goals))
@@ -24,10 +24,12 @@ The ultimate goal of this repository is to create a pipeline for estimating disp
 The ISRM Health Calculation model works by a series of two modules. First, the model estimates annual average change in PM<sub>2.5</sub> concentrations as part of the **Concentration Module**. Second, the excess mortality resulting from the concentration change is calculated in the **Health Module**.
 
 ### Concentration Module Methodology ###
-The InMAP Source Receptor Matrix (ISRM) links emissions sources to changes in receptor concentrations. There is a matrix layer for each of the five precursor species: primary PM<sub>2.5</sub>, ammonia (NH<sub>3</sub>), oxides of nitrogen (NOx), oxides of sulfur (SOx), and volatile organic compounds (VOC). For each of these species, the ISRM matrix dimensions are: 3 elevations by 21,705 sources by 21,705 receptors. The three elevations of release height within the ISRM are:
+The InMAP Source Receptor Matrix (ISRM) links emissions sources to changes in receptor concentrations. There is a matrix layer for each of the five precursor species: primary PM<sub>2.5</sub>, ammonia (NH<sub>3</sub>), oxides of nitrogen (NOx), oxides of sulfur (SOx), and volatile organic compounds (VOC). By default, the tool uses the California ISRM. For each of these species in the California ISRM, the ISRM matrix dimensions are: 3 elevations by 21,705 sources by 21,705 receptors. The three elevations of release height within the ISRM are:
 * Less than 57 meters
 * Between 57 and 140 meters
 * Greater than 760 meters.
+
+The tool is capable of reading in a different ISRM, if specified by the user. 
 
 The units of each cell within the ISRM are micrograms per meter cubed per microgram per second, or concentration per emissions. 
 
@@ -224,6 +226,7 @@ The `control_file` object is used to check and read the control file for a run:
 * `run_name`: a string representing the run name preferred by the user
 * `emissions_path`: a string representing the path to the emissions input file
 * `emissions_units`: a string representing the units of the emissions data
+* `isrm_path`: a string representing the path of the folder storing ISRM numpy layers and geodata
 * `population_path`: a string representing the path to the population input file
 * `check`: a Boolean indicating whether the program should run, or if it should just check the inputs (useful for debugging)
 * `population_path`: a string representing the path to the population data file
@@ -324,8 +327,7 @@ The `health_data` object stores and manipulates built-in health data (population
 The `isrm` object loads, stores, and manipulates the ISRM grid data. 
 
 *Inputs*
-* `isrm_fps`: a list of filepath strings for the NH3, NOx, PM25, SOX, and VOC paths, respectively
-* `isrm_gfp`: a filepath string for the geometry feather of the ISRM grid
+* `isrm_path`: a string representing the folder containing all ISRM data
 * `output_region`: a geodataframe of the region for results to be output, as calculated by `get_output_region` in `tool_utils.py`
 * `region_of_interest`: the name of the region contained in the `output_region`
 * `load_file`: a Boolean indicating whether or not the file should be loaded (for debugging)
@@ -345,6 +347,7 @@ The `isrm` object loads, stores, and manipulates the ISRM grid data.
 * `PM25`, `NH3`, `NOx`, `SOX`, `VOC`: the ISRM matrices for each of the primary pollutants
 
 *Internal Functions*
+* `get_isrm_files`: appends the file names to the isrm_path input to generate full file paths
 * `check_path`: checks if the files exist at the paths specified (both data and geo files)
 * `load_and_cut`: loads the numpy layers for a pollutant and trims the columns of each vertical layer's matrix to only include the `receptor_IDs` within the `output_region`
 * `load_isrm`: calls the `load_and_cut` function for each ISRM numeric layer and returns a list of pollutant matrices
