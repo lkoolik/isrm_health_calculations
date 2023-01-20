@@ -4,7 +4,7 @@
 ISRM Data Object
 
 @author: libbykoolik
-last modified: 2022-10-24
+last modified: 2023-01-20
 """
 
 # Import Libraries
@@ -17,6 +17,7 @@ from scipy.io import netcdf_file as nf
 import os
 from os import path
 import sys
+import concurrent.futures
 
 #%% Define the ISRM Object
 class isrm:
@@ -76,8 +77,17 @@ class isrm:
         # Read ISRM data and geographic information
         if self.valid_file == True and self.load_file == True and self.valid_geo_file == True:
             # Import the geographic data for the ISRM
-            verboseprint('- Beginning to import ISRM geographic data. This step may take some time.')
-            self.geodata = self.load_geodata()
+            verboseprint('- Beginning to import ISRM geographic data. This step may take some time.')            
+            executor = concurrent.futures.ThreadPoolExecutor()
+            geodata_future = executor.submit(self.load_geodata)
+
+            # Import numeric ISRM layers while the geodata file is also loading
+            verboseprint('- Beginning to import ISRM data. This step may take some time.')
+            self.PM25, self.NH3, self.NOX, self.SOX, self.VOC = self.load_isrm()
+            verboseprint('- ISRM data imported. Five pollutant variables created')
+
+            # Come back to the geodata
+            self.geodata = geodata_future.result()
             verboseprint('- ISRM geographic data imported.')
             
             # Pull a few relevant layers
@@ -86,10 +96,6 @@ class isrm:
             self.geometry = self.geodata['geometry']
             self.receptor_IDs, self.receptor_geometry = self.clip_isrm()
             
-            # Import numeric ISRM layers
-            verboseprint('- Beginning to import ISRM data. This step may take some time.')
-            self.PM25, self.NH3, self.NOX, self.SOX, self.VOC = self.load_isrm()
-            verboseprint('- ISRM data imported. Five pollutant variables created')
             logging.info('\n')
             
     

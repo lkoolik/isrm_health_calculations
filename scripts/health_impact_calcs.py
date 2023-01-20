@@ -4,7 +4,7 @@
 Health Impact Functions
 
 @author: libbykoolik
-last modified: 2022-08-10
+last modified: 2023-01-20
 """
 
 # Import Libraries
@@ -49,14 +49,15 @@ def krewski(conc, inc, pop, endpoint):
     return (1 - (1/np.exp(beta*conc)))*inc*pop
 
 #%% Main Calculation Functions
-def calculate_excess_mortality(conc, health_data_obj, endpoint, function, verbose):
+def calculate_excess_mortality(conc, health_data_pop_inc, pop, endpoint, function, verbose):
     ''' 
     Calculate Excess Mortality 
     
     INPUTS:
         - conc: a float with the exposure concentration for a given geography
-        - health_data_obj: a `health_data` object as defined in the `health_data.py` 
+        - health_data_pop_inc: a `health_data` object's pop_inc member as defined in the `health_data.py` 
           supporting script
+        - pop: a population count
         - endpoint: a string containing either 'ALL CAUSE', 'ISCHEMIC HEART DISEASE', 
           or 'LUNG CANCER'
         - function: the health impact function of choice (currently only `krewski` is 
@@ -74,8 +75,8 @@ def calculate_excess_mortality(conc, health_data_obj, endpoint, function, verbos
     # Get the population-incidence  and total concentration
     if verbose:
         logging.info('   - Creating dataframe to combine concentration data with {} mortality BenMAP inputs.'.format(endpoint.lower()))
-    conc_hia = conc.detailed_conc_clean[['ISRM_ID','TOTAL_CONC_UG/M3','geometry']].copy()
-    pop_inc = health_data_obj.pop_inc.copy().to_crs(conc_hia.crs)
+    conc_hia = conc.copy()
+    pop_inc = health_data_pop_inc.copy().to_crs(conc_hia.crs)
     
     # Merge these on ISRM_ID
     pop_inc_conc = pd.merge(pop_inc, conc_hia[['ISRM_ID','TOTAL_CONC_UG/M3']], on='ISRM_ID')
@@ -118,7 +119,6 @@ def calculate_excess_mortality(conc, health_data_obj, endpoint, function, verbos
     if verbose:
         logging.info('   - Adding population data back in for per capita calculations.')
         
-    pop = health_data_obj.population.groupby('ISRM_ID')[['ASIAN','BLACK','HISLA','INDIG','WHITE','TOTAL']].sum().reset_index()
     pop_inc_conc = pd.merge(pop_inc_conc, pop, left_on='ISRM_ID', right_on='ISRM_ID', how='left')
     pop_inc_conc = pop_inc_conc.fillna(0)
     

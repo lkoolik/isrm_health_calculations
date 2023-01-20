@@ -4,7 +4,7 @@
 Health Impact Function Meta Data Object
 
 @author: libbykoolik
-last modified: 2022-08-10
+last modified: 2023-01-20
 """
 
 # Import Libraries
@@ -18,6 +18,7 @@ import logging
 import os
 from os import path
 import sys
+import concurrent.futures
 
 #%% Define the Health Data Object
 class health_data:

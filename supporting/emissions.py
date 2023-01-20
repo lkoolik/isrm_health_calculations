@@ -4,7 +4,7 @@
 Emissions Data Object
 
 @author: libbykoolik
-last modified: 2022-08-01
+last modified: 2023-01-20
 """
 
 # Import Libraries
@@ -49,7 +49,7 @@ class emissions:
     def __init__(self, file_path, units='ug/s', name='', details_to_keep=[], filter_dict={}, load_file=True, verbose=False):
         ''' Initializes the emissions object'''     
         logging.info('<< Reading Emissions File >>')
-        
+        logging.info(f'units: {units}')
         # Initialize path and check that it is valid
         self.file_path = file_path
         self.file_type = file_path.split('.')[-1].lower()
@@ -173,9 +173,12 @@ class emissions:
         if self.file_type == 'shp':
             geometry, emissions_data, crs = self.load_shp()
         
-        if self.file_type == 'feather':
+        elif self.file_type == 'feather':
             geometry, emissions_data, crs = self.load_feather()
-            
+         
+        else:
+            raise ValueError('Emissions file is of an unknown type. Cannot proceed')
+        
         return geometry, emissions_data, crs
                 
     def load_shp(self):

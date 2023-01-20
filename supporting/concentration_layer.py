@@ -4,7 +4,7 @@
 Concentration Layer Data Object
 
 @author: libbykoolik
-last modified: 2022-08-01
+last modified: 2023-01-20
 """
 
 # Import Libraries
@@ -22,6 +22,7 @@ import sys
 sys.path.append('/Users/libbykoolik/Documents/Research/OEHHA Project/scripts/isrm_health_calculations/supporting')
 from isrm import isrm
 from emissions import emissions
+import concurrent.futures
 
 #%% Define the Concentration Layer Object
 class concentration_layer:
@@ -97,13 +98,16 @@ class concentration_layer:
     def __repr__(self):
         return '< Concentration layer object created from '+self.name + ' and the ISRM grid.>'
 
-    def allocate_emissions(self, emis_layer, isrm_geography):    
+    @staticmethod
+    def allocate_emissions(emis_layer, isrm_geography):    
         ''' Reallocates the emissions into the ISRM geography using a spatial intersect '''
         
         ## Pre-Process Slightly for Easier Functioning Downstream
         # Deep copy the emissions layer and add an ID field
+        logging.info('creating a deep copy...')
         emis = emis_layer.copy(deep=True)
         emis['EMIS_ID'] = 'EMIS_'+emis.index.astype(str)
+        logging.info('deep copy created.')
         
         # Re-project the emissions layer into the ISRM coordinate reference system
         emis = emis.to_crs(isrm_geography.crs)
@@ -165,16 +169,25 @@ class concentration_layer:
         tmp_dct = {}
         
         # Iterate through each pollutant
-        for pollutant in pollutants:
-            # Grab the pollutant layer (e.g., PM25)
-            emis_slice = emis.get_pollutant_layer(pollutant)
-            
-            # Cut the pollutant layer based on the height
-            emis_slice = emis_slice[(emis_slice['HEIGHT_M']>=height_min) & (emis_slice['HEIGHT_M']<height_max)]
-            
-            tmp_dct[pollutant] = self.allocate_emissions(emis_slice,
-                                                    isrm_obj.geodata)
+        with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
+            futures = {}
+            for pollutant in pollutants:
+                # Grab the pollutant layer (e.g., PM25)
+                emis_slice = emis.get_pollutant_layer(pollutant)
 
+                # Cut the pollutant layer based on the height
+                emis_slice = emis_slice[(emis_slice['HEIGHT_M']>=height_min) & (emis_slice['HEIGHT_M']<height_max)]
+
+                logging.info(f'Starting job for {pollutant}')
+                futures[pollutant] = executor.submit(self.allocate_emissions, emis_slice, isrm_obj.geodata)
+                # tmp_dct[pollutant] = self.allocate_emissions(emis_slice,
+                #                                         isrm_obj.geodata)
+            logging.info('Waiting for all allocations to complete')
+            concurrent.futures.wait(futures.values()) # Waits for all calculations to finish
+            logging.info('done!')
+            # Creates a dict of the values
+            tmp_dct = {x: futures[x].result() for x in pollutants}
+        
         return tmp_dct['PM25'], tmp_dct['NH3'], tmp_dct['VOC'], tmp_dct['NOX'], tmp_dct['SOX']
     
     def get_concentration(self, pol_emis, pol_isrm, layer):
