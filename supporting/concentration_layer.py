@@ -169,7 +169,7 @@ class concentration_layer:
         tmp_dct = {}
         
         # Iterate through each pollutant
-        with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=5) as cl_executor:
             futures = {}
             for pollutant in pollutants:
                 # Grab the pollutant layer (e.g., PM25)
@@ -179,7 +179,7 @@ class concentration_layer:
                 emis_slice = emis_slice[(emis_slice['HEIGHT_M']>=height_min) & (emis_slice['HEIGHT_M']<height_max)]
 
                 logging.info(f'Starting job for {pollutant}')
-                futures[pollutant] = executor.submit(self.allocate_emissions, emis_slice, isrm_obj.geodata)
+                futures[pollutant] = cl_executor.submit(self.allocate_emissions, emis_slice, isrm_obj.geodata)
                 # tmp_dct[pollutant] = self.allocate_emissions(emis_slice,
                 #                                         isrm_obj.geodata)
             logging.info('Waiting for all allocations to complete')
