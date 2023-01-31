@@ -18,6 +18,7 @@ import datetime
 import shutil
 import concurrent.futures
 import multiprocessing
+import platform
 
 # Import supporting objects
 sys.path.insert(0,'./supporting')
@@ -150,6 +151,7 @@ if __name__ == "__main__":
         # they are necessary when we are paralellizing computation rather than
         # disk I/O.
         executor = concurrent.futures.ProcessPoolExecutor(max_workers=5)
+        executor_jobs = []
         
         # We need to wait for the population and ISRM files to load before we
         # start creating the exp_pop_alloc or HIA inputs.
@@ -160,6 +162,7 @@ if __name__ == "__main__":
         # Start creating the exp_pop_alloc object.
         exp_pop_alloc_future = executor.submit(
             pop.allocate_population, pop.pop_exp, isrmgrid.geodata, 'ISRM_ID', False)
+        executor_jobs.append(exp_pop_alloc_future)
         
         # Creating HIA inputs takes a long time. Start the process as early as 
         # possible, even if the rest of the health module won't start yet.
@@ -168,17 +171,22 @@ if __name__ == "__main__":
             logging.info('- Starting to create hia_inputs in a separate process')
             hia_inputs_future = executor.submit(
                 create_hia_inputs, pop, load_file=True, verbose=verbose, geodata=isrmgrid.geodata, incidence_fp=incidence_fp)
+            executor_jobs.append(hia_inputs_future)
         
         ## Create plots and export results
         emis = emis_future.result() # This almost always finishes earlier than the otehr files
         conc = concentration(emis, isrmgrid, run_calcs=True, verbose=verbose)
         logging.info("<< Generating Concentration Outputs >>")
         #conc.visualize_concentrations('TOTAL_CONC_UG/M3',output_region, output_dir, f_out, ca_shp_path, export=True)
-        conc.visualize_concentrations_in_background(executor, 'TOTAL_CONC_UG/M3', output_region, output_dir, f_out, ca_shp_path, export=True)
+        conc_viz_future = conc.visualize_concentrations_in_background(executor, 'TOTAL_CONC_UG/M3', output_region, output_dir, f_out, ca_shp_path, export=True)
+        executor_jobs.append(conc_viz_future)
         conc.export_concentrations(shape_out, f_out, detailed=False)
         logging.info("- Concentration files output into: {}.".format(output_dir))
         
-        executor.shutdown(wait=False) # Closes this pool for any more tasks, but returns immediately
+        ## Best practice is to close the pool, but this causes an exception on Mac
+        if platform.system() != 'Darwin':
+            executor.shutdown(wait=False) # Closes this pool for any more tasks, but returns immediately
+
         
         ## Perform concentration-related EJ analyses
         exp_pop_alloc = pop.allocate_population(pop.pop_exp, isrmgrid.geodata, 'ISRM_ID', False)
@@ -206,7 +214,7 @@ if __name__ == "__main__":
             logging.info('- hia_inputs ready')
             
             # TODO(jdbus): Use the same process pool as above. Why not? 
-            with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
+            with concurrent.futures.ProcessPoolExecutor(max_workers=5) as health_executor:
                 logging.info('Using multiprocessing...')
                 # Estimate excess mortality
                 logging.info('\n << Estimating Excess Mortality for Three Endpoints >>')
@@ -218,20 +226,22 @@ if __name__ == "__main__":
                         (trimmed_conc, hia_inputs.pop_inc, pop, 'ISCHEMIC HEART DISEASE', krewski),
                         (trimmed_conc, hia_inputs.pop_inc, pop, 'LUNG CANCER', krewski),
                 ]
-                futures = [executor.submit(calculate_excess_mortality, *params, verbose=verbose) for params in call_parameters]
+                futures = [health_executor.submit(calculate_excess_mortality, *params, verbose=verbose) for params in call_parameters]
                 allcause, ihd, lungcancer = (futures[0].result(), futures[1].result(), futures[2].result())
                 
                 # Plot and export
                 logging.info('\n<< Health Impact Outputs >>')
                 futures = []
                 for data, title in ([allcause, 'ALL CAUSE'], [ihd, 'ISCHEMIC HEART DISEASE'], [lungcancer, 'LUNG CANCER']):
-                    futures.append(executor.submit(visualize_and_export_hia, data, ca_shp_path, 'TOTAL', title, output_dir, f_out, shape_out, verbose=verbose))
+                    futures.append(health_executor.submit(visualize_and_export_hia, data, ca_shp_path, 'TOTAL', title, output_dir, f_out, shape_out, verbose=verbose))
                 
                 # TODO(jdbus): I don't think we need to wait for this, why not let the other stuff start right away?
                 # The parent process won't terminate until all the children finish.
                 logging.info('Waiting for visualizations and exports to complete...')
                 concurrent.futures.wait(futures)
                 logging.info('Done!')
+        
+        concurrent.futures.wait(executor_jobs)
         
         # Final log statements
         logging.info('\n ╓────────────────────────────────╖')
