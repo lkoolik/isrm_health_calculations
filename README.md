@@ -639,18 +639,4 @@ The `tool_utils` library contains a handful of scripts that are useful for code 
 
 ## Running the Tool
 
-(This section is currently a work in progress)
-
-### Input Files
-There are two main input files for the ISRM Tool: the emissions input file and the population input file.
-
-#### Emissions Input File
-...
-
-#### Population Input File
-The population input file can be either a feather file or a shapefile. The population file should have the following fields:
-* `YEAR`: the year of the data (for record keeping)
-* `GROUP`: the racial/ethnic group name, which should be one of the following list: ASIAN, BLACK, HISLA, INDIG, OTHER, PACIS, WHITE
-* `AGE_BIN`: the age bin for the population group, which should include 0TO0, followed by 5 year increments (e.g., 1TO4, 5TO9) until 85UP.
-* `POPULATION`: the number of people in that `GROUP`, `AGE_BIN`, and `geometry`.
-* (optional, depending on creation method) `geometry`: a field describing the polygon shapes. This is auto-generated for a shapefile in geopandas and should not be manually added.
+The tool is configured to be run on a [Mac](https://lkoolik.github.io/isrm_tool/) or on the [Google Cloud](https://docs.google.com/document/d/1aurYIaGMi6BCvQaK6cEyrb5amSAX8TXTYiB2ko2N8FU/). Instructions for each of those are linked in the previous sentence.
