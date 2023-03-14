@@ -180,8 +180,7 @@ class concentration_layer:
 
                 logging.info(f'Starting job for {pollutant}')
                 futures[pollutant] = cl_executor.submit(self.allocate_emissions, emis_slice, isrm_obj.geodata)
-                # tmp_dct[pollutant] = self.allocate_emissions(emis_slice,
-                #                                         isrm_obj.geodata)
+                
             logging.info('Waiting for all allocations to complete')
             concurrent.futures.wait(futures.values()) # Waits for all calculations to finish
             logging.info('done!')

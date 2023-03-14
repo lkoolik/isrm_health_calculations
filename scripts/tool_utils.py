@@ -33,10 +33,11 @@ def setup_logging():
 
     '''
     level = logging.INFO
-    format = ' %(message)s'
+    format = '%(asctime)s %(filename)s:%(lineno)s %(message)s'
+    datefmt = '%Y-%m-%d %H:%M:%S'
     tmp_logger = os.path.join(os.getcwd(),'tmp.txt')
     handlers = [logging.FileHandler(tmp_logger), logging.StreamHandler()]
-    logging.basicConfig(level=level, format=format, handlers=handlers)
+    logging.basicConfig(level=level, format=format, handlers=handlers, datefmt=datefmt)
     logging.info('╔════════════════════════════════╗')
     logging.info('║ ISRM Health Calculations Tool  ║')
     logging.info('║ Version 0.7.0                  ║')
