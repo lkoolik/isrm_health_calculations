@@ -3,7 +3,7 @@ A repository of scripts used for converting emissions to concentrations and heal
 
 *Libby Koolik, UC Berkeley*
 
-Last modified February 14, 2023
+Last modified March 14, 2023
 
 ## Table of Contents
 * Purpose and Goals ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#purpose-and-goals))
@@ -190,6 +190,7 @@ The `concentration` object runs ISRM-based calculations for each of the vertical
 *Inputs*
 * `emis_obj`: the emissions object, as defined by `emissions.py`
 * `isrm_obj`: the ISRM object, as defined by `isrm.py`
+* `detailed_conc_flag`: a Boolean indicating whether concentrations should be output at a detailed level or not
 
 *Attributes*
 * `isrm_id`: a Series of all ISRM grid cell IDs
@@ -232,6 +233,7 @@ The `control_file` object is used to check and read the control file for a run:
 * `population_path`: a string representing the path to the population data file
 * `verbose`: a Boolean indicating whether the user wants to run in verbose mode
 * `output_exposure`: a Boolean indicating whether exposure should be output
+* `detailed_conc`: a Boolean indicating whether concentrations should should be output as totals or by pollutant
 
 *Internal Functions*
 * `check_path`: checks if a file exists at the given control file path

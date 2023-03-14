@@ -4,7 +4,7 @@
 Main Run File
 
 @author: libbykoolik
-Last updated: 2022-10-24
+Last updated: 2023-03-14
 """
 #%% Import useful libraries, supporting objects, and scripts
 # Useful libraries for main script
@@ -68,6 +68,7 @@ else: # load all the control file info
     region_category = cf.region_category
     output_resolution = cf.output_resolution
     output_exposure = cf.output_exposure
+    detailed_conc_flag = cf.detailed_conc
 
 # Create the output directory
 output_dir, f_out = create_output_dir(batch, name)
@@ -117,12 +118,12 @@ if __name__ == "__main__":
         isrmgrid = isrm(isrm_path, output_region, region_of_interest, load_file=True, verbose=verbose)
         
         ## Estimate concentrations
-        conc = concentration(emis, isrmgrid, run_calcs=True, verbose=verbose)
+        conc = concentration(emis, isrmgrid, detailed_conc_flag, run_calcs=True, verbose=verbose)
         
         ## Create plots and export results
         logging.info("<< Generating Concentration Outputs >>")
         conc.visualize_concentrations('TOTAL_CONC_UG/M3',output_region, output_dir, f_out, ca_shp_path, export=True)
-        conc.export_concentrations(shape_out, f_out, detailed=False)
+        conc.export_concentrations(shape_out, f_out)
         logging.info("- Concentration files output into: {}.".format(output_dir))
         
         ## Perform concentration-related EJ analyses
