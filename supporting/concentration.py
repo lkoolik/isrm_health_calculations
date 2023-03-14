@@ -4,7 +4,7 @@
 Total Concentration Data Object
 
 @author: libbykoolik
-last modified: 2022-08-01
+last modified: 2023-03-14
 """
 
 # Import Libraries
@@ -33,6 +33,8 @@ class concentration:
     INPUTS:
         - emis_obj: the emissions object, as defined by emissions.py
         - isrm_obj: the ISRM object, as defined by isrm.py
+        - detailed_conc_flag: a Boolean indicating whether concentrations should be output
+          at a detailed level or not
         
     CALCULATES:
         - detailed_conc: geodataframe of the detailed concentrations at ground-level 
@@ -49,7 +51,7 @@ class concentration:
           directory of choice
 
     '''
-    def __init__(self, emis_obj, isrm_obj, run_calcs=True, verbose=False):
+    def __init__(self, emis_obj, isrm_obj, detailed_conc_flag, run_calcs=True, verbose=False):
         ''' Initializes the Concentration object'''        
         logging.info('<< Estimating concentrations from provided emissions using the ISRM. >>')
         # Initialize concentration object by reading in the emissions and isrm 
@@ -57,6 +59,7 @@ class concentration:
         self.isrm = isrm_obj
         
         # Get a few other metadata
+        self.detailed_conc_flag = detailed_conc_flag
         self.isrm_id = self.isrm.ISRM_ID
         self.isrm_geom = self.isrm.geometry
         self.crs = self.isrm.crs
@@ -183,11 +186,11 @@ class concentration:
             logging.info('   - Map of concentrations output as {}'.format(fname))
         return
 
-    def export_concentrations(self, output_dir, f_out, detailed=False,):
+    def export_concentrations(self, output_dir, f_out):
         ''' Exports concentration as a shapefile (detailed or total) '''
         logging.info('- Exporting concentrations as a shapefile.')
         # If detailed flag is True, export detailed shapefile
-        if detailed:
+        if self.detailed_conc_flag:
             fname = f_out + '_detailed_concentration.shp' # File Name
             fpath = os.path.join(output_dir, fname)
             
