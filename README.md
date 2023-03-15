@@ -3,7 +3,7 @@ A repository of scripts used for converting emissions to concentrations and heal
 
 *Libby Koolik, UC Berkeley*
 
-Last modified October 24, 2022
+Last modified March 14, 2023
 
 ## Table of Contents
 * Purpose and Goals ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#purpose-and-goals))
@@ -190,6 +190,7 @@ The `concentration` object runs ISRM-based calculations for each of the vertical
 *Inputs*
 * `emis_obj`: the emissions object, as defined by `emissions.py`
 * `isrm_obj`: the ISRM object, as defined by `isrm.py`
+* `detailed_conc_flag`: a Boolean indicating whether concentrations should be output at a detailed level or not
 
 *Attributes*
 * `isrm_id`: a Series of all ISRM grid cell IDs
@@ -232,6 +233,7 @@ The `control_file` object is used to check and read the control file for a run:
 * `population_path`: a string representing the path to the population data file
 * `verbose`: a Boolean indicating whether the user wants to run in verbose mode
 * `output_exposure`: a Boolean indicating whether exposure should be output
+* `detailed_conc`: a Boolean indicating whether concentrations should should be output as totals or by pollutant
 
 *Internal Functions*
 * `check_path`: checks if a file exists at the given control file path
@@ -639,18 +641,4 @@ The `tool_utils` library contains a handful of scripts that are useful for code 
 
 ## Running the Tool
 
-(This section is currently a work in progress)
-
-### Input Files
-There are two main input files for the ISRM Tool: the emissions input file and the population input file.
-
-#### Emissions Input File
-...
-
-#### Population Input File
-The population input file can be either a feather file or a shapefile. The population file should have the following fields:
-* `YEAR`: the year of the data (for record keeping)
-* `GROUP`: the racial/ethnic group name, which should be one of the following list: ASIAN, BLACK, HISLA, INDIG, OTHER, PACIS, WHITE
-* `AGE_BIN`: the age bin for the population group, which should include 0TO0, followed by 5 year increments (e.g., 1TO4, 5TO9) until 85UP.
-* `POPULATION`: the number of people in that `GROUP`, `AGE_BIN`, and `geometry`.
-* (optional, depending on creation method) `geometry`: a field describing the polygon shapes. This is auto-generated for a shapefile in geopandas and should not be manually added.
+The tool is configured to be run on a [Mac](https://lkoolik.github.io/isrm_tool/) or on the [Google Cloud](https://docs.google.com/document/d/1aurYIaGMi6BCvQaK6cEyrb5amSAX8TXTYiB2ko2N8FU/). Instructions for each of those are linked in the previous sentence.

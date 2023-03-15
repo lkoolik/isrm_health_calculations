@@ -4,7 +4,7 @@
 Main Run File
 
 @author: libbykoolik
-Last updated: 2023-01-20
+Last updated: 2023-03-15
 """
 #%% Import useful libraries, supporting objects, and scripts
 # Useful libraries for main script
@@ -87,6 +87,7 @@ if __name__ == "__main__":
         region_category = cf.region_category
         output_resolution = cf.output_resolution
         output_exposure = cf.output_exposure
+        detailed_conc_flag = cf.detailed_conc
 
     # Create the output directory
     output_dir, f_out = create_output_dir(batch, name)
@@ -145,7 +146,7 @@ if __name__ == "__main__":
         emis_future = file_reader_pool.submit(emissions, emissions_path, units=units, name=name, load_file=True, verbose=verbose)
         isrm_future = file_reader_pool.submit(isrm, isrm_path, output_region, region_of_interest, load_file=True, verbose=verbose)
         pop_future = file_reader_pool.submit(population, population_path, load_file=True, verbose=verbose)
-        
+  
         # To run multiple computations at once, we need to create multiple
         # processes instead of threads. Processes take longer to create, but
         # they are necessary when we are paralellizing computation rather than
@@ -172,12 +173,15 @@ if __name__ == "__main__":
             hia_inputs_future = executor.submit(
                 create_hia_inputs, pop, load_file=True, verbose=verbose, geodata=isrmgrid.geodata, incidence_fp=incidence_fp)
             executor_jobs.append(hia_inputs_future)
+
+        ## Estimate concentrations
+        conc = concentration(emis, isrmgrid, detailed_conc_flag, run_calcs=True, verbose=verbose)
         
         ## Create plots and export results
         emis = emis_future.result() # This almost always finishes earlier than the otehr files
         conc = concentration(emis, isrmgrid, run_calcs=True, verbose=verbose)
         logging.info("<< Generating Concentration Outputs >>")
-        #conc.visualize_concentrations('TOTAL_CONC_UG/M3',output_region, output_dir, f_out, ca_shp_path, export=True)
+
         conc_viz_future = conc.visualize_concentrations_in_background(executor, 'TOTAL_CONC_UG/M3', output_region, output_dir, f_out, ca_shp_path, export=True)
         executor_jobs.append(conc_viz_future)
         conc.export_concentrations(shape_out, f_out, detailed=False)

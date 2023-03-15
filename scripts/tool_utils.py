@@ -4,7 +4,7 @@
 Tool Utils
 
 @author: libbykoolik
-last modified: 2022-08-01
+last modified: 2023-03-14
 """
 
 #%% Import useful libraries
@@ -40,7 +40,7 @@ def setup_logging():
     logging.basicConfig(level=level, format=format, handlers=handlers, datefmt=datefmt)
     logging.info('╔════════════════════════════════╗')
     logging.info('║ ISRM Health Calculations Tool  ║')
-    logging.info('║ Version 0.7.0                  ║')
+    logging.info('║ Version 0.7.1                  ║')
     logging.info('╚════════════════════════════════╝\n')
 
     # Suppress all other library warnings and information
