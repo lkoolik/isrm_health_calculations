@@ -99,24 +99,13 @@ class concentration:
         Creates a concentration_layer object for each valid layer and then 
         combines them all into three sets of concentration data
         '''
-        # # Define a concentration layer list for easier appending
-        # conc_layers = []
+        # Define a concentration layer list for easier appending
+        conc_layers = []
         
         # Run each layer if the layer flag is True
-        with concurrent.futures.ProcessPoolExecutor(max_workers=5) as c_executor:
-            futures = {}
-            
-            logging.info(f'Starting job for layers')
-            if self.emissions.L0_flag: futures['L0']= c_executor.submit(self.run_layer, 0)
-            if self.emissions.L1_flag: futures['L1']= c_executor.submit(self.run_layer, 1)
-            if self.emissions.L2_flag: futures['L2']= c_executor.submit(self.run_layer, 2)
-
-            logging.info('Waiting for all allocations to complete')
-            concurrent.futures.wait(futures.values()) # Waits for all calculations to finish
-            logging.info('done!')
-              
-            # Put future results into the conc_layers list
-            conc_layers = [futures['L0'].result(), futures['L1'].result(), futures['L2'].result()]
+        if self.emissions.L0_flag: conc_layers.append(self.run_layer(0))
+        if self.emissions.L1_flag: conc_layers.append(self.run_layer(1))
+        if self.emissions.L2_flag: conc_layers.append(self.run_layer(2))
         
         # Concatenate these detailed concentration dataframes
         detailed_concentration = pd.concat(conc_layers)
@@ -195,6 +184,7 @@ class concentration:
                               legend_kwds={'label':r'Concentration of PM$_{2.5}$ ($\mu$g/m$^3$)'},
                               cmap='viridis',
                               edgecolor='none',
+                              antialiased=False,
                               ax = ax)
         
         ca_prj.plot(edgecolor='black', facecolor='none', ax=ax)

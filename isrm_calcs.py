@@ -53,7 +53,7 @@ def create_hia_inputs(pop, load_file: bool, verbose: bool, geodata:pd.DataFrame,
 #%% Run Program
 if __name__ == "__main__":    
    
-    #%% Use argparse to parse command line arguments
+    #% Use argparse to parse command line arguments
     start_time = time.time()
 
     # Initialize the parser object
@@ -173,24 +173,21 @@ if __name__ == "__main__":
             hia_inputs_future = executor.submit(
                 create_hia_inputs, pop, load_file=True, verbose=verbose, geodata=isrmgrid.geodata, incidence_fp=incidence_fp)
             executor_jobs.append(hia_inputs_future)
-
-        ## Estimate concentrations
-        conc = concentration(emis, isrmgrid, detailed_conc_flag, run_calcs=True, verbose=verbose)
         
-        ## Create plots and export results
+        ## Estimate concentrations
         emis = emis_future.result() # This almost always finishes earlier than the otehr files
-        conc = concentration(emis, isrmgrid, run_calcs=True, verbose=verbose)
+        conc = concentration(emis, isrmgrid, detailed_conc_flag, run_calcs=True, verbose=verbose)
         logging.info("<< Generating Concentration Outputs >>")
 
+        ## Create plots and export results
         conc_viz_future = conc.visualize_concentrations_in_background(executor, 'TOTAL_CONC_UG/M3', output_region, output_dir, f_out, ca_shp_path, export=True)
         executor_jobs.append(conc_viz_future)
-        conc.export_concentrations(shape_out, f_out, detailed=False)
+        conc.export_concentrations(shape_out, f_out)
         logging.info("- Concentration files output into: {}.".format(output_dir))
         
         ## Best practice is to close the pool, but this causes an exception on Mac
         if platform.system() != 'Darwin':
             executor.shutdown(wait=False) # Closes this pool for any more tasks, but returns immediately
-
         
         ## Perform concentration-related EJ analyses
         exp_pop_alloc = pop.allocate_population(pop.pop_exp, isrmgrid.geodata, 'ISRM_ID', False)
