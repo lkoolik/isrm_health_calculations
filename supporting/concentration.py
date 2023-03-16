@@ -20,11 +20,11 @@ import logging
 import os
 from os import path
 import sys
-sys.path.append('/Users/libbykoolik/Documents/Research/OEHHA Project/scripts/isrm_health_calculations/supporting')
+sys.path.append('./supporting')
 from isrm import isrm
 from emissions import emissions
 from concentration_layer import concentration_layer
-sys.path.append('/Users/libbykoolik/Documents/Research/OEHHA Project/scripts/isrm_health_calculations/scripts')
+sys.path.append('./scripts')
 from tool_utils import *
 import concurrent.futures
 

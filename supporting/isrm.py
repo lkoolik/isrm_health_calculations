@@ -18,7 +18,7 @@ import os
 from os import path
 import sys
 import concurrent.futures
-sys.path.append('/Users/libbykoolik/Documents/Research/OEHHA Project/scripts/isrm_health_calculations/scripts')
+sys.path.append('./scripts')
 from tool_utils import *
 
 #%% Define the ISRM Object

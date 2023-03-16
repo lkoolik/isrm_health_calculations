@@ -16,7 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 from os import path
-sys.path.append('/Users/libbykoolik/Documents/Research/OEHHA Project/scripts/isrm_health_calculations/scripts')
+sys.path.append('./scripts')
 from tool_utils import *
 
 
