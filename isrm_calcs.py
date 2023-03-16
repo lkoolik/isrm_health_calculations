@@ -280,6 +280,7 @@ if __name__ == "__main__":
                 # health_executor.shutdown(wait=True)
                 # while health_out_futures[0].running() and health_out_futures[1].running() and health_out_futures[2].running():
                 #     time.sleep(1)
+                concurrent.futures.wait(health_out_futures)
                 logging.info('- [HEALTH] All outputs have been exported!')
         
         concurrent.futures.wait(executor_jobs)
