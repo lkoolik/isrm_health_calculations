@@ -146,6 +146,8 @@ Next, the tool will run environmental justice exposure calculations using the `c
 
 Finally, if indicated by the user, the tool will begin the health module. It will create the health input object using the `health_data.py` library and then estimate the three endpoints of excess mortality using `calculate_excess_mortality` from the `health_impact_calcs` file. Each endpoint will then be mapped and exported using `visualize_and_export_hia`.
 
+The tool utilizes parallel computing to increase efficiency and reduce runtime. As such, many of these steps do not happen exactly in the order presented above. 
+
 The program has completed when a box stating "Success! Run complete." shows on the screen.
 
 #### Check Module
@@ -211,6 +213,7 @@ The `concentration` object runs ISRM-based calculations for each of the vertical
 
 *External Functions*
 * `visualize_concentrations`: draws a map of concentrations for a variable (`var`) and exports it as a PNG into an output directory (`output_dir`) of choice
+* `visualize_concentrations_in_background`: same function as visualize_concentrations, but enables parallel computing to draw the map in the background
 * `export_concentrations`: exports concentrations as a shapefile into an output directory (`output_dir`) of choice
 
 #### `control_file.py`

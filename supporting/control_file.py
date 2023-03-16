@@ -18,7 +18,8 @@ import sys
 import re
 import difflib
 import logging
-            
+
+#%%
 class control_file:
     '''
     Defines a new object for reading the control file and storing information.

@@ -18,6 +18,8 @@ import os
 from os import path
 import sys
 import concurrent.futures
+sys.path.append('/Users/libbykoolik/Documents/Research/OEHHA Project/scripts/isrm_health_calculations/scripts')
+from tool_utils import *
 
 #%% Define the ISRM Object
 class isrm:
@@ -48,7 +50,6 @@ class isrm:
     '''
     def __init__(self, isrm_path, output_region, region_of_interest, load_file=True, verbose=False):
         ''' Initializes the ISRM object'''        
-        logging.info('<< Reading ISRM Data >>')
         
         # Initialize paths and check that they are valid
         sys.path.append(os.path.realpath('..'))
@@ -61,42 +62,41 @@ class isrm:
         # Grab other meta-parameters
         self.load_file = load_file
         self.verbose = verbose
-        verboseprint = logging.info if self.verbose else lambda *a, **k:None # for logging
-        verboseprint('- Loading a new ISRM object.')
+        
+        # Return a starting statement
+        verboseprint(self.verbose, '- [ISRM] Loading a new ISRM object.')
         
         # If the files do not exist, quit before opening
         if not self.valid_file:
-            logging.info('\n<< ERROR: The filepath provided for the ISRM netCDF is not correct. Please correct and retry. >>')
+            logging.info('\n<< [ISRM] ERROR: The folder provided for the ISRM files is not correct or the correct files are not present. Please correct and retry. >>')
             sys.exit()
         elif not self.valid_geo_file:
-            logging.info('\n<< ERROR: The filepath provided for the ISRM boundaries is not correct. Please correct and retry. >>')
+            logging.info('\n<< [ISRM] ERROR: The folder provided for the ISRM files is not correct or the correct boundary file is not present. Please correct and retry. >>')
             sys.exit()
         else:
-            verboseprint('- Filepaths and files found. Proceeding to import ISRM data.')
+            verboseprint(self.verbose, '- [ISRM] Filepaths and files found. Proceeding to import ISRM data.')
         
         # Read ISRM data and geographic information
         if self.valid_file == True and self.load_file == True and self.valid_geo_file == True:
             # Import the geographic data for the ISRM
-            verboseprint('- Beginning to import ISRM geographic data. This step may take some time.')            
+            verboseprint(self.verbose, '- [ISRM] Beginning to import ISRM geographic data. This step may take some time.')            
             executor = concurrent.futures.ThreadPoolExecutor()
             geodata_future = executor.submit(self.load_geodata)
 
             # Import numeric ISRM layers while the geodata file is also loading
-            verboseprint('- Beginning to import ISRM data. This step may take some time.')
+            verboseprint(self.verbose, '- [ISRM] Beginning to import ISRM data. This step may take some time.')
             self.PM25, self.NH3, self.NOX, self.SOX, self.VOC = self.load_isrm()
-            verboseprint('- ISRM data imported. Five pollutant variables created')
+            verboseprint(self.verbose, '- [ISRM] ISRM data imported. Five pollutant variables created')
 
             # Come back to the geodata
             self.geodata = geodata_future.result()
-            verboseprint('- ISRM geographic data imported.')
+            verboseprint(self.verbose, '- [ISRM] ISRM geographic data imported.')
             
             # Pull a few relevant layers
             self.crs = self.geodata.crs
             self.ISRM_ID = self.geodata['ISRM_ID']
             self.geometry = self.geodata['geometry']
             self.receptor_IDs, self.receptor_geometry = self.clip_isrm()
-            
-            logging.info('\n')
             
     
     def __str__(self):
