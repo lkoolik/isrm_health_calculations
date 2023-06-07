@@ -4,7 +4,7 @@
 Main Run File
 
 @author: libbykoolik
-Last updated: 2023-03-15
+Last updated: 2023-06-07
 """
 #%% Import useful libraries, supporting objects, and scripts
 # Useful libraries for main script
@@ -35,19 +35,6 @@ sys.path.insert(0,'./scripts')
 from environmental_justice_calcs import *
 from health_impact_calcs import *
 from tool_utils import *
-
-
-
-def create_hia_inputs(pop, load_file: bool, verbose: bool, geodata:pd.DataFrame,
-                      incidence_fp: str):
-    """ Creates the hia_inputs object.
-    
-    Moving this into a separate function allows us to run this in parallel while
-    other functions are running, speeding up the overall execution of the
-    application.
-    """
-    hia_pop_alloc = pop.allocate_population(pop.pop_all, geodata, 'ISRM_ID', True)
-    return health_data(hia_pop_alloc, incidence_fp, verbose=verbose, race_stratified=False)
   
 #%% A few things need to go outside the __main__
 #% Use argparse to parse command line arguments
@@ -60,16 +47,16 @@ parser.add_argument("--debug", help="enable for debugging mode", action="store_t
 
 # Parse all arguments
 args = parser.parse_args()
-debug_mode = args.debug
-
-#% Create the log file and update logging configuration
-tmp_logger = setup_logging(debug_mode)
+debug_mode = args.debug   
 
 #%% Run Program
-if __name__ == "__main__":    
+if __name__ == "__main__":        
 
     # Start the timer
     start_time = time.time()
+    
+    #% Create the log file and update logging configuration
+    tmp_logger = setup_logging(debug_mode) 
     
     # Report the current version
     report_version()
@@ -101,7 +88,7 @@ if __name__ == "__main__":
     # Move the log file into the output directory
     new_logger = os.path.join(output_dir, 'log_'+f_out+'.txt')
     os.rename(tmp_logger, new_logger)
-
+    
     # Save a copy of the control file into the output directory
     shutil.copy(args.inputs, output_dir)
 
@@ -143,7 +130,7 @@ if __name__ == "__main__":
         logging.info('║ Beginning Concentration Module ║')
         logging.info('╙────────────────────────────────╜')
         logging.info('\n')
-        
+
         ## Create emissions and ISRM objects
         # By using a ThreadPoolExecutor to spin up multiple threads, we can
         # read several files at the same time, and even let the population file
@@ -204,14 +191,14 @@ if __name__ == "__main__":
         logging.info("\n<< Generating Concentration Outputs >>")
         verboseprint(verbose, '- Notes about this step will be preceded by the tag [CONCENTRATION].')
         logging.info('\n')
-        conc_viz_future = conc.visualize_concentrations_in_background(executor, 'TOTAL_CONC_UG/M3', output_region, output_dir, f_out, ca_shp_path, export=True)
-        executor_jobs.append(conc_viz_future)
+        conc.visualize_concentrations('TOTAL_CONC_UG/M3', output_region, output_dir, f_out, ca_shp_path, export=True)
         conc.export_concentrations(shape_out, f_out)
         logging.info("- [CONCENTRATION] Concentration files output into: {}.".format(output_dir))
         
         ## Best practice is to close the pool, but this causes an exception on Mac
         # Don't shut it down if it is still importing the health calculation inputs
         if platform.system() != 'Darwin' and run_health == False:
+            conc_viz_future.result() # waits until this is done
             executor.shutdown(wait=False) # Closes this pool for any more tasks, but returns immediately
         
         ## Perform concentration-related EJ analyses
@@ -247,10 +234,11 @@ if __name__ == "__main__":
             with concurrent.futures.ProcessPoolExecutor(max_workers=5) as health_executor:
                 logging.info('\n')
                 logging.info('<< Beginning Health Calculations >>')
-                verboseprint(verbose, '- The tool will estimate excess mortality from three endpoints in parallel. Log statements may appear out of order.')
-                verboseprint(verbose, '- Notes about All-Cause Mortality will be preceded by the tag [ACM].')
-                verboseprint(verbose, '- Notes about Ischemic Heart Disease Mortality will be preceded by the tag [IHD].')
-                verboseprint(verbose, '- Notes about Lung Cancer Mortality will be preceded by the tag [LCM].')
+                verboseprint(verbose, '- The tool will estimate excess mortality from three endpoints in parallel. This results in a known bug that suppresses update statements and will be fixed in a future update. Note that this step may take a few minutes.')
+                # verboseprint(verbose, '- The tool will estimate excess mortality from three endpoints in parallel. Log statements may appear out of order.')
+                # verboseprint(verbose, '- Notes about All-Cause Mortality will be preceded by the tag [ACM].')
+                # verboseprint(verbose, '- Notes about Ischemic Heart Disease Mortality will be preceded by the tag [IHD].')
+                # verboseprint(verbose, '- Notes about Lung Cancer Mortality will be preceded by the tag [LCM].')
                 logging.info('\n')
 
                 # Estimate excess mortality
@@ -258,43 +246,47 @@ if __name__ == "__main__":
                 trimmed_conc = conc.detailed_conc_clean[['ISRM_ID','TOTAL_CONC_UG/M3','geometry']]
                 pop = hia_inputs.population.groupby('ISRM_ID')[['ASIAN','BLACK','HISLA','INDIG','WHITE','TOTAL']].sum().reset_index()
                 
-                call_parameters = [
-                        (trimmed_conc, hia_inputs.pop_inc, pop, 'ALL CAUSE', krewski, verbose),
-                        (trimmed_conc, hia_inputs.pop_inc, pop, 'ISCHEMIC HEART DISEASE', krewski, verbose),
-                        (trimmed_conc, hia_inputs.pop_inc, pop, 'LUNG CANCER', krewski, verbose),
-                ]
-                futures = [health_executor.submit(calculate_excess_mortality, *params) for params in call_parameters]
-                allcause, ihd, lungcancer = (futures[0].result(), futures[1].result(), futures[2].result())
+                # Submit each endpoint as its own process to the health_executor
+                allcause_future = health_executor.submit(calculate_excess_mortality, trimmed_conc,
+                                                         hia_inputs.pop_inc, pop, 'ALL CAUSE', krewski, verbose)
+                ihd_future = health_executor.submit(calculate_excess_mortality, trimmed_conc,
+                                                         hia_inputs.pop_inc, pop, 'ISCHEMIC HEART DISEASE', krewski, verbose)
+                lungcancer_future = health_executor.submit(calculate_excess_mortality, trimmed_conc,
+                                                         hia_inputs.pop_inc, pop, 'LUNG CANCER', krewski, verbose)
+                                
+                # Collect all three results
+                allcause = allcause_future.result()
+                ihd = ihd_future.result()
+                lungcancer = lungcancer_future.result()
                 
-                # Plot and export
-                logging.info('\n')
+                # Begin exporting the results in parallel
                 logging.info('<< Exporting Health Impact Outputs >>')
-                health_out_futures = []
-                for data, title in ([allcause, 'ALL CAUSE'], [ihd, 'ISCHEMIC HEART DISEASE'], [lungcancer, 'LUNG CANCER']):
-                    health_out_futures.append(health_executor.submit(visualize_and_export_hia, data, ca_shp_path, 'TOTAL', title, output_dir, f_out, shape_out, verbose=verbose))
                 
-                # TODO(jdbus): I don't think we need to wait for this, why not let the other stuff start right away?
-                # The parent process won't terminate until all the children finish.
+                ## Set up futures
+                allcause_ve_future = health_executor.submit(visualize_and_export_hia, allcause, ca_shp_path, 'TOTAL', 'ALL CAUSE', output_dir, f_out, shape_out, verbose=verbose)
+                ihd_ve_future = health_executor.submit(visualize_and_export_hia, ihd, ca_shp_path, 'TOTAL', 'ISCHEMIC HEART DISEASE', output_dir, f_out, shape_out, verbose=verbose)
+                lungcancer_ve_future = health_executor.submit(visualize_and_export_hia, lungcancer, ca_shp_path, 'TOTAL', 'LUNG CANCER', output_dir, f_out, shape_out, verbose=verbose)
+                
                 logging.info('- [HEALTH] Waiting for visualizations and exports to complete...')
-                # tmp = health_out_futures.result()
-                # health_executor.shutdown(wait=True)
-                # while health_out_futures[0].running() and health_out_futures[1].running() and health_out_futures[2].running():
-                #     time.sleep(1)
-                concurrent.futures.wait(health_out_futures)
+                
+                ## We don't actually need anything stored, we just need the program to wait until
+                ## all three are done before exiting
+                tmp = allcause_ve_future.result()
+                tmp = ihd_ve_future.result()
+                tmp = lungcancer_ve_future.result()
+                
+                ## Return that everything is done
                 logging.info('- [HEALTH] All outputs have been exported!')
         
-        concurrent.futures.wait(executor_jobs)
-        # concurrent.futures.wait(health_out_futures)
-        
-        # Final log statements
+        # Final log statements to close out
         logging.info('\n')
         logging.info('╓────────────────────────────────╖')
         logging.info('║ Success! Run complete.         ║')
         logging.info('╙────────────────────────────────╜\n')
         logging.info('<< ISRM calculations tool has completed all calculations and exports. >>')
-        run_time = round((time.time() - start_time)/60.0,0)
+        run_time = round((time.time() - start_time)/60.0,1)
         logging.info('- Total run time: {} minutes'.format(run_time))
         logging.info('- All log statements have been saved into a text file: {}'.format(new_logger))
+        logging.shutdown()
         
         quit()
-        

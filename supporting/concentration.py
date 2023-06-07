@@ -4,7 +4,7 @@
 Total Concentration Data Object
 
 @author: libbykoolik
-last modified: 2023-03-15
+last modified: 2023-06-07
 """
 
 # Import Libraries
@@ -130,35 +130,18 @@ class concentration:
         
         return detailed_concentration, detailed_concentration_clean, total_concentration
     
-    def visualize_concentrations_in_background(self, executor_pool, *args, **kwargs):
-        """Wrapper method to call visualize_concentrations in a separate process.
-        
-        By making the visualize_concentrations function a static method and only passing the
-        few instance variables that it needs, we avoid serializing a huge amount of data
-        that would make it prohibitively expensive to spin up the separate process."""
-        verboseprint(self.verbose, '- [CONCENTRATION] Starting a parallel job for visualizing concentrations')
-        future = executor_pool.submit(
-                self.visualize_concentrations,
-                self.detailed_conc_clean,
-                self.crs,
-                *args, **kwargs, verbose=self.verbose
-        )
-        return future
-
-    @staticmethod
-    def visualize_concentrations(detailed_conc_clean, crs, var, output_region, output_dir, 
-                                 f_out, ca_shp_fp, export=False, verbose=False):
+    def visualize_concentrations(self, var, output_region, output_dir, f_out, ca_shp_fp, export=False):
         ''' Creates map of concentrations using simple chloropleth '''
-        
         # Note to build this out further at some point in the future, works for now
-        verboseprint(self.verbose, '- [CONCENTRATION] Drawing map of total PM2.5 concentrations.')
+        if self.verbose:
+            logging.info('- Drawing map of total PM2.5 concentrations.')
         
         # Read in CA boundary
         ca_shp = gpd.read_feather(ca_shp_fp)
-        ca_prj = ca_shp.to_crs(crs)
+        ca_prj = ca_shp.to_crs(self.crs)
         
         # Reproject output_region
-        output_region = output_region.to_crs(crs)
+        output_region = output_region.to_crs(self.crs)
         
         # Create necessary labels and strings
         if var[0:10] == 'CONC_UG/M3':
@@ -171,7 +154,7 @@ class concentration:
         fpath = os.path.join(output_dir, fname)
         
         # Grab relevant layer
-        c_to_plot = detailed_conc_clean[['ISRM_ID','geometry',var]].copy()
+        c_to_plot = self.detailed_conc_clean[['ISRM_ID','geometry',var]].copy()
         
         # Clip to output region
         c_to_plot = gpd.clip(c_to_plot, output_region)

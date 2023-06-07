@@ -4,7 +4,7 @@
 Health Impact Functions
 
 @author: libbykoolik
-last modified: 2023-03-15
+last modified: 2023-06-07
 """
 
 # Import Libraries
@@ -22,8 +22,33 @@ from os import path
 import sys
 sys.path.append('./scripts')
 from tool_utils import *
+sys.path.append('./supporting')
+from health_data import health_data
+
 
 #%% Health Calculation Helper Functions
+def create_hia_inputs(pop, load_file: bool, verbose: bool, geodata:pd.DataFrame,
+                      incidence_fp: str):
+    """ Creates the hia_inputs object.
+    
+        Moving this into a separate function allows us to run this in parallel while
+        other functions are running, speeding up the overall execution of the
+        application.
+    
+    INPUTS:
+        - pop: the population object input
+        - load_file: a boolean telling program to load or not
+        - verbose: a boolean telling program to return additional log statements or not
+        - geodata: the geographic data from the ISRM 
+        - incidence_fp: the filepath where the incidence data is stored
+        
+    OUTPUTS: 
+        - a health data object ready for health calculations
+    
+    """
+    hia_pop_alloc = pop.allocate_population(pop.pop_all, geodata, 'ISRM_ID', True)
+    return health_data(hia_pop_alloc, incidence_fp, verbose=verbose, race_stratified=False)
+
 def krewski(conc, inc, pop, endpoint):
     ''' 
     Estimates excess mortality from all causes using the Krewski (2009) function 
@@ -50,6 +75,19 @@ def krewski(conc, inc, pop, endpoint):
     
     return (1 - (1/np.exp(beta*conc)))*inc*pop
 
+def create_logging_code():
+    ''' Makes a global logging code for easier updating 
+    
+    INPUTS: None
+    
+    OUTPUTS: 
+        - logging_code: a dictionary that maps endpoint names to log codes
+    '''
+    logging_code = {'ALL CAUSE':'[ACM]', 
+                    'ISCHEMIC HEART DISEASE':'[IHD]', 
+                    'LUNG CANCER':'[LCM]'}
+    return logging_code
+
 #%% Main Calculation Functions
 def calculate_excess_mortality(conc, health_data_pop_inc, pop, endpoint, function, verbose):
     ''' 
@@ -74,9 +112,7 @@ def calculate_excess_mortality(conc, health_data_pop_inc, pop, endpoint, functio
     '''
     
     # Set up some logging things and print statements
-    logging_code = {'ALL CAUSE':'[ACM]', 
-                    'ISCHEMIC HEART DISEASE':'[IHD]', 
-                    'LUNG CANCER':'[LCM]'}[endpoint]
+    logging_code = create_logging_code()[endpoint]
     logging.info('- {} Estimating excess {} mortality from PM2.5. This step may take time.'.format(logging_code, endpoint.lower()))
     
     # Get the population-incidence  and total concentration
@@ -159,6 +195,7 @@ def plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out, 
           and `endpoint`.
           
     '''
+    logging_code = create_logging_code()[endpoint]
     verboseprint(verbose, '- {} Drawing plot of excess {} mortality from PM2.5 exposure.'.format(logging_code, endpoint.lower()))
     
     sns.set_theme(context="notebook", style="whitegrid", font_scale=1.25)
@@ -208,6 +245,7 @@ def plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out, 
                 edgecolor='none', cmap='Greys',
                 norm=matplotlib.colors.LogNorm(vmin=hia_pop_area_min,
                                                 vmax=hia_df['POP_AREA_NORM'].max()),
+                antialiased=False,
                 ax=ax0)
     ca_shp.dissolve().plot(edgecolor='black',facecolor='none', linewidth=1,ax=ax0)
     
@@ -217,6 +255,7 @@ def plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out, 
                 edgecolor='none', cmap='Greys',
                 norm=matplotlib.colors.LogNorm(vmin=hia_df['TOTAL_CONC_UG/M3'].min(),
                                                 vmax=hia_df['TOTAL_CONC_UG/M3'].max()),
+                antialiased=False,
                 ax=ax1)
     ca_shp.dissolve().plot(edgecolor='black',facecolor='none', linewidth=1,ax=ax1)
     
@@ -226,6 +265,7 @@ def plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out, 
                 edgecolor='none', cmap='Greys',
                 norm=matplotlib.colors.LogNorm(vmin=hia_mort_area_min,
                                                 vmax=hia_df['MORT_AREA_NORM'].max()),
+                antialiased=False,
                 ax=ax2)
     ca_shp.dissolve().plot(edgecolor='black',facecolor='none', linewidth=1,ax=ax2)
     
@@ -235,6 +275,7 @@ def plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out, 
                 edgecolor='none', cmap='Greys',
                 norm=matplotlib.colors.LogNorm(vmin=hia_df['MORT_OVER_POP'].min(),
                                                 vmax=hia_df['MORT_OVER_POP'].max()),
+                antialiased=False,
                 ax=ax3)
     ca_shp.dissolve().plot(edgecolor='black',facecolor='none', linewidth=1,ax=ax3)
 
@@ -282,12 +323,14 @@ def export_health_impacts(hia_df, group, endpoint, output_dir, f_out, verbose):
           and `endpoint`.
         
     '''
+    logging_code = create_logging_code()[endpoint]
     verboseprint(verbose, '- {} Exporting excess {} mortality from PM2.5 exposure as a shapefile.'.format(logging_code, endpoint.lower()))
         
     # Create the output file directory and name string
     fname = f_out + '_' + group + '_' + endpoint + '_excess_mortality.shp'
     fname = str.lower(fname)
     fpath = os.path.join(output_dir, fname)
+    logging_code = create_logging_code()[endpoint]
     
     # Get endpoint shortlabel
     endpoint_labels = {'ALL CAUSE':'ACM_',
@@ -336,9 +379,10 @@ def visualize_and_export_hia(hia_df, ca_shp_fp, group, endpoint, output_dir, f_o
           be printed      
         
     OUTPUTS:
-        - None
+        - fname: string of filename used as a surrogate for completion of the function
     
     '''    
+    logging_code = create_logging_code()[endpoint]
     logging.info('- {} Visualizing and exporting excess {} mortality.'.format(logging_code, endpoint.lower()))
     # Plot the map of mortality
     fname = plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out, verbose)
@@ -346,4 +390,4 @@ def visualize_and_export_hia(hia_df, ca_shp_fp, group, endpoint, output_dir, f_o
     # Export the shapefile
     fname = export_health_impacts(hia_df, group, endpoint, shape_out, f_out, verbose)
         
-    return fname#nothing
+    return fname #returning something fixes parallel bug
