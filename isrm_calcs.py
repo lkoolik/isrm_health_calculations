@@ -4,7 +4,7 @@
 Main Run File
 
 @author: libbykoolik
-Last updated: 2023-06-07
+Last updated: 2023-06-08
 """
 #%% Import useful libraries, supporting objects, and scripts
 # Useful libraries for main script
@@ -17,7 +17,6 @@ import time
 import datetime
 import shutil
 import concurrent.futures
-import multiprocessing
 import platform
 
 # Import supporting objects
@@ -115,12 +114,8 @@ if __name__ == "__main__":
         except:
             logging.info("\n<< Correct error messages above before running the program. >>\n")
         quit()
-    else: # for now, run everything
+    else: # If Check Inputs is not selected, run concentration module
     
-        # Setting the Multiprocessing startup mode should only be done once
-        # in the lifetime of an application.
-        multiprocessing.set_start_method('forkserver')
-        
         # Create an output directory for shapefiles
         shape_out = create_shape_out(output_dir)
         
@@ -137,13 +132,19 @@ if __name__ == "__main__":
         # keep loading while we compute concentrations based on the emissions
         # and ISRM files. Multiple threads are a good option when the bottleneck
         # is disk I/O, not CPU usage.
+        
+        # First start with some logging statements
         logging.info('<< Loading emissions, ISRM, and population files in parallel. Log messages may appear out of order. >>')        
         verboseprint(verbose, '- Processing for the emissions in verbose mode will be preceeded by [EMISSIONS].')
         verboseprint(verbose, '- Processing for the ISRM grid in verbose mode will be preceeded by [ISRM].')
         verboseprint(verbose, '- Processing for the population data in verbose mode will be preceeded by [POPULATION].')
         logging.info('\n')
-        verboseprint(verbose, 'Details about file import:')
+        verboseprint(verbose, '<< Details about file import >>')
+        
+        # Open the ThreadPoolExecutor
         file_reader_pool = concurrent.futures.ThreadPoolExecutor()
+        
+        # Start reading in files in parallel
         emis_future = file_reader_pool.submit(emissions, emissions_path, units=units, name=name, load_file=True, verbose=verbose)
         isrm_future = file_reader_pool.submit(isrm, isrm_path, output_region, region_of_interest, load_file=True, verbose=verbose)
         pop_future = file_reader_pool.submit(population, population_path, load_file=True, verbose=verbose)
@@ -183,66 +184,70 @@ if __name__ == "__main__":
         logging.info('\n<< Estimating concentrations. >>')        
         verboseprint(verbose, '- Notes about this step will be preceded by the tag [CONCENTRATION].')
         logging.info('\n')
-        emis = emis_future.result() # This almost always finishes earlier than the other files
+        emis = emis_future.result() # At this point, we cannot proceed without emissions loaded
         conc = concentration(emis, isrmgrid, detailed_conc_flag, run_calcs=True, verbose=verbose)
 
 
         ## Create plots and export results
+        # Parallelizing this process resulted in errors. This is an area for improvement in
+        # future versions
         logging.info("\n<< Generating Concentration Outputs >>")
         verboseprint(verbose, '- Notes about this step will be preceded by the tag [CONCENTRATION].')
         logging.info('\n')
+        
+        # Create the map of concentrations
         conc.visualize_concentrations('TOTAL_CONC_UG/M3', output_region, output_dir, f_out, ca_shp_path, export=True)
+        
+        # Export the shapefiles
         conc.export_concentrations(shape_out, f_out)
         logging.info("- [CONCENTRATION] Concentration files output into: {}.".format(output_dir))
-        
-        ## Best practice is to close the pool, but this causes an exception on Mac
-        # Don't shut it down if it is still importing the health calculation inputs
-        if platform.system() != 'Darwin' and run_health == False:
-            conc_viz_future.result() # waits until this is done
-            executor.shutdown(wait=False) # Closes this pool for any more tasks, but returns immediately
         
         ## Perform concentration-related EJ analyses
         exp_pop_alloc = pop.allocate_population(pop.pop_exp, isrmgrid.geodata, 'ISRM_ID', False)
         verboseprint(verbose, '- [POPULATION] Population data is properly allocated to the ISRM grid and ready for EJ calculations.')
         
-        # Create the exposure dataframe and run EJ functions
+        ## Create the exposure dataframe and run EJ functions
         logging.info('\n<< Beginning Exposure EJ Calculations >>')
         verboseprint(verbose, '- Notes about this step will be preceded by the tag [EJ].')
         logging.info('\n')
+        
+        # Estimate exposures and output them
         exposure_gdf, exposure_pctl, exposure_disparity = run_exposure_calcs(conc, exp_pop_alloc, verbose)    
+        
         if output_exposure:
             export_exposure(exposure_gdf, shape_out, f_out)
         
-        # Export results
+        # Create the plot and export it
         plot_percentile_exposure(output_dir, f_out, exposure_pctl, verbose)
         
         ### HEALTH MODULE
         if run_health:
+            
+            ## Initialize the health module with log statements
             logging.info('\n╓────────────────────────────────╖')
             logging.info('║ Beginning Health Impact Module ║')
             logging.info('╙────────────────────────────────╜')
             logging.info('\n')
             
-            # Wait for process creating health input object to finish
+            ## Wait for process creating health input object to finish
             verboseprint(verbose, '- [HEALTH] Waiting for health calculation inputs to finish')
-            hia_inputs = hia_inputs_future.result()
-            if platform.system() != 'Darwin':
-                executor.shutdown(wait=False)
+            hia_inputs = hia_inputs_future.result() # Needs result to proceed
             verboseprint(verbose, '- [HEALTH] Health calculation inputs ready to proceed.')
             
-            # Use the same process pool as above to estimate the three health endpoints. 
+            ## Use new ProcessPoolExecutor to estimate the three health endpoints. 
             with concurrent.futures.ProcessPoolExecutor(max_workers=5) as health_executor:
+                
+                # Return a few log statements
                 logging.info('\n')
                 logging.info('<< Beginning Health Calculations >>')
-                verboseprint(verbose, '- The tool will estimate excess mortality from three endpoints in parallel. This results in a known bug that suppresses update statements and will be fixed in a future update. Note that this step may take a few minutes.')
-                # verboseprint(verbose, '- The tool will estimate excess mortality from three endpoints in parallel. Log statements may appear out of order.')
-                # verboseprint(verbose, '- Notes about All-Cause Mortality will be preceded by the tag [ACM].')
-                # verboseprint(verbose, '- Notes about Ischemic Heart Disease Mortality will be preceded by the tag [IHD].')
-                # verboseprint(verbose, '- Notes about Lung Cancer Mortality will be preceded by the tag [LCM].')
+                verboseprint(verbose, '- The tool will estimate excess mortality from three endpoints in parallel. This results in a known bug that may suppresses update statements and will be fixed in a future update. Note that this step may take a few minutes.')
+                verboseprint(verbose, '- Notes about All-Cause Mortality will be preceded by the tag [ACM].')
+                verboseprint(verbose, '- Notes about Ischemic Heart Disease Mortality will be preceded by the tag [IHD].')
+                verboseprint(verbose, '- Notes about Lung Cancer Mortality will be preceded by the tag [LCM].')
                 logging.info('\n')
-
-                # Estimate excess mortality
                 logging.info('<< Estimating Excess Mortality for Three Endpoints >>')
+                
+                # Two inputs are required to estimate excess mortality
                 trimmed_conc = conc.detailed_conc_clean[['ISRM_ID','TOTAL_CONC_UG/M3','geometry']]
                 pop = hia_inputs.population.groupby('ISRM_ID')[['ASIAN','BLACK','HISLA','INDIG','WHITE','TOTAL']].sum().reset_index()
                 
@@ -262,23 +267,22 @@ if __name__ == "__main__":
                 # Begin exporting the results in parallel
                 logging.info('<< Exporting Health Impact Outputs >>')
                 
-                ## Set up futures
+                # Start exporting files as futures
                 allcause_ve_future = health_executor.submit(visualize_and_export_hia, allcause, ca_shp_path, 'TOTAL', 'ALL CAUSE', output_dir, f_out, shape_out, verbose=verbose)
                 ihd_ve_future = health_executor.submit(visualize_and_export_hia, ihd, ca_shp_path, 'TOTAL', 'ISCHEMIC HEART DISEASE', output_dir, f_out, shape_out, verbose=verbose)
                 lungcancer_ve_future = health_executor.submit(visualize_and_export_hia, lungcancer, ca_shp_path, 'TOTAL', 'LUNG CANCER', output_dir, f_out, shape_out, verbose=verbose)
-                
                 logging.info('- [HEALTH] Waiting for visualizations and exports to complete...')
                 
-                ## We don't actually need anything stored, we just need the program to wait until
-                ## all three are done before exiting
+                # We don't actually need anything stored, we just need the program to wait until
+                # all three are done before exiting
                 tmp = allcause_ve_future.result()
                 tmp = ihd_ve_future.result()
                 tmp = lungcancer_ve_future.result()
                 
-                ## Return that everything is done
+                # Return that everything is done
                 logging.info('- [HEALTH] All outputs have been exported!')
-        
-        # Final log statements to close out
+                
+        ## Final log statements to close out
         logging.info('\n')
         logging.info('╓────────────────────────────────╖')
         logging.info('║ Success! Run complete.         ║')
