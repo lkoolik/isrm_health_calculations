@@ -3,7 +3,7 @@ A repository of scripts used for converting emissions to concentrations and heal
 
 *Libby Koolik, UC Berkeley*
 
-Last modified March 14, 2023
+Last modified June 8, 2023
 
 ## Table of Contents
 * Purpose and Goals ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#purpose-and-goals))
@@ -145,6 +145,8 @@ Then, the tool will begin the concentration module. This starts by defining an e
 Next, the tool will run environmental justice exposure calculations using the `create_exposure_df`, `get_overall_disparity`, and `estimate_exposure_percentile` functions from the `environmental_justice_calcs.py` file. The exposure percentiles will then be plotted and exported using the `plot_percentile_exposure` function. If the control file has indicated that exposure data should be output (using the 'OUTPUT_EXPOSURE' flag), a shapefile of exposure concentrations by population group will be output in the output directory.
 
 Finally, if indicated by the user, the tool will begin the health module. It will create the health input object using the `health_data.py` library and then estimate the three endpoints of excess mortality using `calculate_excess_mortality` from the `health_impact_calcs` file. Each endpoint will then be mapped and exported using `visualize_and_export_hia`.
+
+The tool utilizes parallel computing to increase efficiency and reduce runtime. As such, many of these steps do not happen exactly in the order presented above. 
 
 The program has completed when a box stating "Success! Run complete." shows on the screen.
 
@@ -495,7 +497,20 @@ The `environmental_justice_calcs` script file contains a number of functions tha
 #### `health_impact_calcs.py` 
 The `health_impact_calcs` script file contains a number of functions that help calculate health impacts from exposure concentrations.
 
-1. `krewski`: defines a Python function around the Krewski et al. (2009) function and endpoints
+1. `create_hia_inputs`: creates the hia_inputs object.
+   1. Inputs:
+      * `pop`: population object input
+      * `load_file`: a Boolean telling the program to load or not
+      * `verbose`: a Boolean telling the program to return additional log statements or not
+      * `geodata`: the geographic data from the ISRM
+      * `incidence_fp`: a string containing the filepath where the incidence data is stored
+   2. Outputs:
+      * a health data object ready for health calculations
+   3. Methodology
+      1. Allocates population to the ISRM grid using the population object and the ISRM geodata.
+      2. Initializes a health_data object from that allocated population.
+
+2. `krewski`: defines a Python function around the Krewski et al. (2009) function and endpoints
    1. Inputs:
       * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed
       * `conc`: a float with the exposure concentration for a given geography
@@ -510,7 +525,14 @@ The `health_impact_calcs` script file contains a number of functions that help c
 
 $$ 1 - ( \frac{1}{\exp(\beta_{d} \times C_{i})} ) \times I_{i,d,g} \times P_{i,g} $$
 
-2. `calculate_excess_mortality`: estimates excess mortality for a given `endpoint` and `function`
+3. `create_logging_code`: makes a global logging code for easier updating
+   1. Inputs: None
+   2. Outputs:
+      * `logging_code`: a dictionary that maps endpoint names to log statement codes
+   4. Methodology:
+      1. Defines a dictionary and returns it.
+     
+4. `calculate_excess_mortality`: estimates excess mortality for a given `endpoint` and `function`
    1. Inputs:
       * `conc`: a float with the exposure concentration for a given geography
       * `health_data_obj`: a `health_data` object as defined in the `health_data.py` supporting script
@@ -529,7 +551,7 @@ $$ 1 - ( \frac{1}{\exp(\beta_{d} \times C_{i})} ) \times I_{i,d,g} \times P_{i,g
       7. Merges the population back into the dataframe.
       8. Cleans up the dataframe.
  
-3. `plot_total_mortality`: creates a map image (PNG) of the excess mortality associated with an `endpoint` for a given `group`.
+5. `plot_total_mortality`: creates a map image (PNG) of the excess mortality associated with an `endpoint` for a given `group`.
    1. Inputs:
       * `hia_df`: a dataframe containing excess mortality for the `endpoint` using the `function` provided
       * `ca_shp_fp`: a filepath string of the California state boundary shapefile
@@ -555,7 +577,7 @@ $$ 1 - ( \frac{1}{\exp(\beta_{d} \times C_{i})} ) \times I_{i,d,g} \times P_{i,g
          4. Excess mortality per population: plots the excess mortality per population for the group on a log-normal scale.
       9. Performs a bit of clean-up and formatting before exporting.
   
-4. `export_health_impacts`: asdf
+6. `export_health_impacts`: exports mortality as a shapefile
    1. Inputs:
       * `hia_df`: a dataframe containing excess mortality for the `endpoint` using the `function` provided
       * `group`: the racial/ethnic group name
@@ -570,7 +592,7 @@ $$ 1 - ( \frac{1}{\exp(\beta_{d} \times C_{i})} ) \times I_{i,d,g} \times P_{i,g
       2. Creates endpoint short labels and updates column names since shapefiles can only have ten characters in column names.
       3. Exports the geodataframe to shapefile.
 
-5. `visualize_and_export_hia`: calls `plot_total_mortality` and `export_health_impacts` in one clean function call.
+7. `visualize_and_export_hia`: calls `plot_total_mortality` and `export_health_impacts` in one clean function call.
    1. Inputs:
       * `hia_df`: a dataframe containing excess mortality for the `endpoint` using the `function` provided
       * `ca_shp_fp`: a filepath string of the California state boundary shapefile
@@ -581,7 +603,7 @@ $$ 1 - ( \frac{1}{\exp(\beta_{d} \times C_{i})} ) \times I_{i,d,g} \times P_{i,g
       * `shape_out`: a filepath string for shapefiles
       * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed      
    2. Outputs
-      * N/A
+      * `fname`: a string with the file name. This output is generated in order to force a result for the program to wait for. Its value has no significance.
    3. Methodology:
       1. Calls `plot_total_mortality`.
       2. Calls `export_health_impacts.
@@ -591,20 +613,35 @@ The `tool_utils` library contains a handful of scripts that are useful for code 
 
 1. `setup_logging`: sets up the log file capability using the `logging` library
    1. Inputs:
-      * N/A
-   2. Outputs
+      * `debug_mode`: a Boolean indicating if log statements should be returned in debug mode or not
+   2. Outputs:
       * `tmp_logger`: a filepath string associated with a temporary log file that will be moved as soon as the output directory is created
    3. Methodology:
       1. Defines useful variables for the `logging` library.
       2. Creates a temporary log file path (`tmp_logger`) that allows the file to be created before the output directory.
       3. Suppresses all other library warnings and information.
+      4. Sets the formatting system for log statements.
 
+2. `verboseprint`: sets up the verbose printing mechanism for global usage
+   1. Inputs:
+      * `verbose`: a Boolean indicating if it is in verbose mode or not
+      * `text`: a string to be returned if the program is in verbose mode
+   2. Outputs: None
+   3. Methodology:
+      1. Checks if verbose is True.
+      2. If True, creates a log statement.
+      3. If False, does nothing. 
 
-2. `create_output_dir`: creates the output directory for saving files
+3. `report_version`: reports the current working version of the tool
+   1. Inputs: None
+   2. Outputs: None
+   3. Methodology: adds statements to the log file about the tool version
+
+4. `create_output_dir`: creates the output directory for saving files
    1. Inputs:
       * `batch`: the batch name 
       * `name`: the run name
-   2. Outputs
+   2. Outputs:
       * `output_dir`: a filepath string for the output directory
       * `f_out`: a string containing the filename pattern to be used in output files
    3. Methodology:
@@ -613,16 +650,16 @@ The `tool_utils` library contains a handful of scripts that are useful for code 
       3. Creates `f_out` by removing the 'out' before the `output_dir`.
       4. Creates the output directory.
 
-3. `create_shape_out`: creates the output directory for saving shapefiles
+5. `create_shape_out`: creates the output directory for saving shapefiles
    1. Inputs:
       * `output_dir`: a filepath string for the output directory
-   2. Outputs
+   2. Outputs:
       * `shape_out`: a filepath string for the shapefile output directory
    3. Methodology:
       1. Creates a directory within the `output_dir` called 'shapes'.
       2. Stores this name as `shape_out`.
 
-4. `get_output_region`: creates the output region geodataframe
+6. `get_output_region`: creates the output region geodataframe
    1. Inputs:
       * `region_of_interest`:  the name of the region to be contained in the `output_region`
       * `region_category`: a string containing the region category for the output region, must be one of 'AB','AD', or 'C' for Air Basins, Air Districts, and Counties
@@ -641,4 +678,4 @@ The `tool_utils` library contains a handful of scripts that are useful for code 
 
 ## Running the Tool
 
-The tool is configured to be run on a [Mac](https://lkoolik.github.io/isrm_tool/) or on the [Google Cloud](https://docs.google.com/document/d/1aurYIaGMi6BCvQaK6cEyrb5amSAX8TXTYiB2ko2N8FU/). Instructions for each of those are linked in the previous sentence.
+The tool is configured to be run on a [Mac](https://lkoolik.github.io/isrm_tool/) or via Linux terminal on the [Google Cloud or Windows Subsystem for Linux](https://docs.google.com/document/d/1aurYIaGMi6BCvQaK6cEyrb5amSAX8TXTYiB2ko2N8FU/). Instructions for each of those are linked in the previous sentence.

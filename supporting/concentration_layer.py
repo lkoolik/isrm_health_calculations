@@ -4,7 +4,7 @@
 Concentration Layer Data Object
 
 @author: libbykoolik
-last modified: 2022-08-01
+last modified: 2023-03-15
 """
 
 # Import Libraries
@@ -19,9 +19,12 @@ import os
 from os import path
 import logging
 import sys
-sys.path.append('/Users/libbykoolik/Documents/Research/OEHHA Project/scripts/isrm_health_calculations/supporting')
+sys.path.append('./supporting')
 from isrm import isrm
 from emissions import emissions
+sys.path.append('./scripts')
+from tool_utils import *
+import concurrent.futures
 
 #%% Define the Concentration Layer Object
 class concentration_layer:
@@ -60,28 +63,28 @@ class concentration_layer:
         self.verbose = verbose
         
         # Print a few things for logging purposes
-        logging.info('- Estimating concentrations from layer {} of the ISRM.'.format(self.layer))
-        verboseprint = logging.info if self.verbose else lambda *a, **k:None # for logging
-        verboseprint('   - Creating a new concentration object for layer {}'.format(self.layer))
+        logging.info('- [CONCENTRATION] Estimating concentrations from layer {} of the ISRM.'.format(self.layer))
+        #verboseprint = logging.info if self.verbose else lambda *a, **k:None # for logging
+        verboseprint(self.verbose, '   - [CONCENTRATION] Creating a new concentration object for layer {}'.format(self.layer))
         
         # Run concentration calculations
         if run_calcs:
             # Allocate emissions to the ISRM grid
-            verboseprint('   - Reallocating emissions to the ISRM grid.')
-            self.PM25e, self.NH3e, self.VOCe, self.NOXe, self.SOXe = self.process_emissions(self.emissions, self.isrm)
+            verboseprint(self.verbose, '   - [CONCENTRATION] Reallocating emissions to the ISRM grid.')
+            self.PM25e, self.NH3e, self.VOCe, self.NOXe, self.SOXe = self.process_emissions(self.emissions, self.isrm, self.verbose)
         
             # Estimate concentrations
-            verboseprint('   - Calculating concentrations of PM25 from each pollutant.')
+            verboseprint(self.verbose, '   - [CONCENTRATION] Calculating concentrations of PM25 from each pollutant.')
             self.pPM25 = self.get_concentration(self.PM25e, self.isrm.get_pollutant_layer('PM25'), self.layer)
-            verboseprint('      - Concentrations estimated from primary PM2.5.')
+            verboseprint(self.verbose, '      - [CONCENTRATION] Concentrations estimated from primary PM2.5.')
             self.pNH4 = self.get_concentration(self.NH3e, self.isrm.get_pollutant_layer('NH3'), self.layer)
-            verboseprint('      - Concentrations estimated from NH3.')
+            verboseprint(self.verbose, '      - [CONCENTRATION] Concentrations estimated from NH3.')
             self.pVOC = self.get_concentration(self.VOCe, self.isrm.get_pollutant_layer('VOC'), self.layer)
-            verboseprint('      - Concentrations estimated from VOCs.')
+            verboseprint(self.verbose, '      - [CONCENTRATION] Concentrations estimated from VOCs.')
             self.pNO3 = self.get_concentration(self.NOXe, self.isrm.get_pollutant_layer('NOX'), self.layer)
-            verboseprint('      - Concentrations estimated from NOx.')
+            verboseprint(self.verbose, '      - [CONCENTRATION] Concentrations estimated from NOx.')
             self.pSO4 = self.get_concentration(self.SOXe, self.isrm.get_pollutant_layer('SOX'), self.layer)
-            verboseprint('      - Concentrations estimated from SOx.')
+            verboseprint(self.verbose, '      - [CONCENTRATION] Concentrations estimated from SOx.')
     
             # Add these together at each ISRM grid cell
             self.detailed_conc = self.combine_concentrations(self.pPM25,
@@ -89,7 +92,7 @@ class concentration_layer:
                                                               self.pVOC,
                                                               self.pNO3,
                                                               self.pSO4)
-            verboseprint('   - Detailed concentrations are estimated from layer {}.'.format(self.layer))
+            verboseprint(self.verbose, '   - [CONCENTRATION] Detailed concentrations are estimated from layer {}.'.format(self.layer))
             
     def __str__(self):
         return 'Concentration layer object created from the emissions from '+self.name + ' and the ISRM grid.'
@@ -97,11 +100,13 @@ class concentration_layer:
     def __repr__(self):
         return '< Concentration layer object created from '+self.name + ' and the ISRM grid.>'
 
-    def allocate_emissions(self, emis_layer, isrm_geography):    
+    @staticmethod
+    def allocate_emissions(emis_layer, isrm_geography, pollutant, verbose):    
         ''' Reallocates the emissions into the ISRM geography using a spatial intersect '''
         
         ## Pre-Process Slightly for Easier Functioning Downstream
         # Deep copy the emissions layer and add an ID field
+        verboseprint(verbose, '- [CONCENTRATION] Allocating {} emissions to grid for ISRM layer.'.format(pollutant))
         emis = emis_layer.copy(deep=True)
         emis['EMIS_ID'] = 'EMIS_'+emis.index.astype(str)
         
@@ -148,7 +153,7 @@ class concentration_layer:
         
         return tmp_cut
     
-    def process_emissions(self, emis, isrm_obj):
+    def process_emissions(self, emis, isrm_obj, verbose):
         ''' Processes emissions before calculating concentrations '''
         # Define pollutant names
         pollutants = ['PM25', 'NH3', 'VOC', 'NOX', 'SOX']
@@ -165,16 +170,25 @@ class concentration_layer:
         tmp_dct = {}
         
         # Iterate through each pollutant
-        for pollutant in pollutants:
-            # Grab the pollutant layer (e.g., PM25)
-            emis_slice = emis.get_pollutant_layer(pollutant)
-            
-            # Cut the pollutant layer based on the height
-            emis_slice = emis_slice[(emis_slice['HEIGHT_M']>=height_min) & (emis_slice['HEIGHT_M']<height_max)]
-            
-            tmp_dct[pollutant] = self.allocate_emissions(emis_slice,
-                                                    isrm_obj.geodata)
+        with concurrent.futures.ProcessPoolExecutor(max_workers=5) as cl_executor:
+            futures = {}
+            for pollutant in pollutants:
+                # Grab the pollutant layer (e.g., PM25)
+                emis_slice = emis.get_pollutant_layer(pollutant)
 
+                # Cut the pollutant layer based on the height
+                emis_slice = emis_slice[(emis_slice['HEIGHT_M']>=height_min) & (emis_slice['HEIGHT_M']<height_max)]
+
+                # verboseprint(self.verbose, f'- Estimating concentrations of PM2.5 from {pollutant}')
+                futures[pollutant] = cl_executor.submit(self.allocate_emissions, emis_slice, isrm_obj.geodata, pollutant, verbose)
+                
+            verboseprint(verbose, '- [CONCENTRATION] Waiting for all allocations to complete')
+            concurrent.futures.wait(futures.values()) # Waits for all calculations to finish
+            verboseprint(verbose, '- [CONCENTRATION] All allocations complete.')
+            
+            # Creates a dict of the values
+            tmp_dct = {x: futures[x].result() for x in pollutants}
+        
         return tmp_dct['PM25'], tmp_dct['NH3'], tmp_dct['VOC'], tmp_dct['NOX'], tmp_dct['SOX']
     
     def get_concentration(self, pol_emis, pol_isrm, layer):

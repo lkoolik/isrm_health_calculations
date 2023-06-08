@@ -4,7 +4,7 @@
 Total Concentration Data Object
 
 @author: libbykoolik
-last modified: 2023-03-14
+last modified: 2023-06-07
 """
 
 # Import Libraries
@@ -20,10 +20,13 @@ import logging
 import os
 from os import path
 import sys
-sys.path.append('/Users/libbykoolik/Documents/Research/OEHHA Project/scripts/isrm_health_calculations/supporting')
+sys.path.append('./supporting')
 from isrm import isrm
 from emissions import emissions
 from concentration_layer import concentration_layer
+sys.path.append('./scripts')
+from tool_utils import *
+import concurrent.futures
 
 #%% Define the Concentration Object
 class concentration:
@@ -53,7 +56,7 @@ class concentration:
     '''
     def __init__(self, emis_obj, isrm_obj, detailed_conc_flag, run_calcs=True, verbose=False):
         ''' Initializes the Concentration object'''        
-        logging.info('<< Estimating concentrations from provided emissions using the ISRM. >>')
+        
         # Initialize concentration object by reading in the emissions and isrm 
         self.emissions = emis_obj
         self.isrm = isrm_obj
@@ -66,13 +69,13 @@ class concentration:
         self.name = self.emissions.emissions_name
         self.verbose = verbose
         self.run_calcs = run_calcs
-        verboseprint = logging.info if self.verbose else lambda *a, **k:None # for logging
-        verboseprint('- Creating a new concentration object')
+        #verboseprint = logging.info if self.verbose else lambda *a, **k:None # for logging
+        verboseprint(self.verbose, '- [CONCENTRATION] Creating a new concentration object')
                 
         # Run concentration calculations
         if self.run_calcs:
             self.detailed_conc, self.detailed_conc_clean, self.total_conc = self.combine_concentrations()
-            verboseprint('- Total concentrations are now ready.')
+            verboseprint(self.verbose, '- [CONCENTRATION] Total concentrations are now ready.')
             logging.info('\n')
             
     def __str__(self):
@@ -127,7 +130,6 @@ class concentration:
         
         return detailed_concentration, detailed_concentration_clean, total_concentration
     
-    
     def visualize_concentrations(self, var, output_region, output_dir, f_out, ca_shp_fp, export=False):
         ''' Creates map of concentrations using simple chloropleth '''
         # Note to build this out further at some point in the future, works for now
@@ -166,6 +168,7 @@ class concentration:
                               legend_kwds={'label':r'Concentration of PM$_{2.5}$ ($\mu$g/m$^3$)'},
                               cmap='viridis',
                               edgecolor='none',
+                              antialiased=False,
                               ax = ax)
         
         ca_prj.plot(edgecolor='black', facecolor='none', ax=ax)
@@ -181,14 +184,14 @@ class concentration:
         fig.tight_layout()
         
         if export:
-            logging.info('   - Exporting a map of total PM2.5 concentrations as a png.')
+            verboseprint(self.verbose, '   - [CONCENTRATION] Exporting a map of total PM2.5 concentrations as a png.')
             fig.savefig(fpath, dpi=200)
-            logging.info('   - Map of concentrations output as {}'.format(fname))
+            logging.info('- [CONCENTRATION] Map of concentrations output as {}'.format(fname))
         return
 
     def export_concentrations(self, output_dir, f_out):
         ''' Exports concentration as a shapefile (detailed or total) '''
-        logging.info('- Exporting concentrations as a shapefile.')
+        verboseprint(self.verbose, '- [CONCENTRATION] Exporting concentrations as a shapefile.')
         # If detailed flag is True, export detailed shapefile
         if self.detailed_conc_flag:
             fname = f_out + '_detailed_concentration.shp' # File Name
@@ -203,7 +206,7 @@ class concentration:
             
             # Export
             gdf_export.to_file(fpath)
-            logging.info('   - Detailed concentrations output as {} >>'.format(fname))
+            logging.info('   - [CONCENTRATION] Detailed concentrations output as {} >>'.format(fname))
             
         # If detailed flag is False, export only total concentration shapefile
         else:
@@ -216,6 +219,6 @@ class concentration:
             
             # Export
             gdf_export.to_file(fpath)
-            logging.info('   - Total concentrations output as {}'.format(fname))
+            logging.info('   - [CONCENTRATION] Total concentrations output as {}'.format(fname))
         
         return

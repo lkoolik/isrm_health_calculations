@@ -4,7 +4,7 @@
 Tool Utils
 
 @author: libbykoolik
-last modified: 2023-03-14
+last modified: 2023-06-07
 """
 
 #%% Import useful libraries
@@ -19,33 +19,78 @@ import datetime
 import geopandas as gpd
 import logging
 
+
 #%% ISRM Tool Utils
-def setup_logging():
+def setup_logging(debug_mode):
     '''
     Sets up the log file system for runs.
     
     INPUTS:
-        - None.
+        - debug_mode: if true, will output logging statements in debugging mode
         
     OUTPUTS:
         - tmp_logger: a filepath string associated with a temporary log file that will 
           be moved as soon as the output directory is created
 
     '''
-    level = logging.INFO
-    format = ' %(message)s'
+    # Create Temporary Logging File (will be renamed)
     tmp_logger = os.path.join(os.getcwd(),'tmp.txt')
-    handlers = [logging.FileHandler(tmp_logger), logging.StreamHandler()]
-    logging.basicConfig(level=level, format=format, handlers=handlers)
+    
+    if debug_mode:
+        level = logging.INFO
+        format = '%(asctime)s %(filename)s:%(lineno)s %(message)s'
+        datefmt = '%Y-%m-%d %H:%M:%S'
+        handlers = [logging.FileHandler(tmp_logger), logging.StreamHandler()]
+        logging.basicConfig(level=level, format=format, handlers=handlers, datefmt=datefmt)
+    
+        # Suppress all other library warnings and information
+        for key in logging.Logger.manager.loggerDict:
+            logging.getLogger(key).setLevel(logging.CRITICAL)
+            
+    else:
+        level = logging.INFO
+        format = '%(message)s'
+        handlers = [logging.FileHandler(tmp_logger), logging.StreamHandler()]
+        logging.basicConfig(level=level, format=format, handlers=handlers)
+    
+        # Suppress all other library warnings and information
+        for key in logging.Logger.manager.loggerDict:
+            logging.getLogger(key).setLevel(logging.CRITICAL)
+
+    return tmp_logger
+
+def verboseprint(verbose, text):
+    '''
+    Sets up the verbose printing mechanism. Adding here makes it global.
+    
+    INPUTS:
+        - verbose: if true, will output a print statement to console and log file
+        - text: the string that should be printed if running in verbose
+        
+    OUTPUTS: None
+    
+    '''
+    if verbose:
+        logging.info(text)
+    else: lambda *a, **k:None
+    return
+    
+def report_version():      
+    '''
+    Reports the current working version of the tool.
+    
+    INPUTS: None
+        
+    OUTPUTS: None
+    
+    '''
+
     logging.info('╔════════════════════════════════╗')
     logging.info('║ ISRM Health Calculations Tool  ║')
-    logging.info('║ Version 0.7.1                  ║')
-    logging.info('╚════════════════════════════════╝\n')
-
-    # Suppress all other library warnings and information
-    for key in logging.Logger.manager.loggerDict:
-        logging.getLogger(key).setLevel(logging.CRITICAL)
-    return tmp_logger
+    logging.info('║ Version 0.8.0                  ║')
+    logging.info('╚════════════════════════════════╝')
+    logging.info('\n')
+    return
 
 def create_output_dir(batch, name):
     ''' 

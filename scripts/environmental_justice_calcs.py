@@ -4,7 +4,7 @@
 EJ Functions
 
 @author: libbykoolik
-last modified: 2022-08-01
+last modified: 2023-03-15
 """
 
 # Import Libraries
@@ -19,6 +19,8 @@ from scipy.io import netcdf_file as nf
 import os
 from os import path
 import sys
+sys.path.append('./scripts')
+from tool_utils import *
 
 #%%
 def create_exposure_df(conc, isrm_pop_alloc, verbose):
@@ -49,8 +51,7 @@ def create_exposure_df(conc, isrm_pop_alloc, verbose):
     exposure_gdf = pd.merge(conc_gdf, isrm_pop_alloc, left_on='ISRM_ID', right_on='ISRM_ID')
     
     # Get PWM columns per group
-    if verbose:
-        logging.info('- Estimating population weighted mean exposure for each demographic group.')
+    verboseprint(verbose, '- [EJ] Estimating population weighted mean exposure for each demographic group.')
     for group in groups:
         exposure_gdf = add_pwm_col(exposure_gdf, group)
         
@@ -224,7 +225,7 @@ def export_exposure(exposure_gdf, output_dir, f_out):
 
     # Export to file
     exposure_gdf.to_file(fpath)
-    logging.info('   - Exposure concentrations output as {}'.format(fname))
+    logging.info('   - [EJ] Exposure concentrations output as {}'.format(fname))
 
     return
 
@@ -244,8 +245,7 @@ def plot_percentile_exposure(output_dir, f_out, df_pctl, verbose):
         - None
     
     '''
-    if verbose:
-        logging.info('- Drawing plot of exposure by percentile of each racial/ethnic group.')
+    verboseprint(verbose, '- [EJ] Drawing plot of exposure by percentile of each racial/ethnic group.')
     # Define racial/ethnic groups of interest
     groups = ['TOTAL', 'ASIAN', 'BLACK', 'HISLA', 'INDIG', 'PACIS', 'WHITE','OTHER']
     
@@ -275,6 +275,6 @@ def plot_percentile_exposure(output_dir, f_out, df_pctl, verbose):
     fname =f_out+'_PM25_Exposure_Percentiles.png' # File Name
     fpath = os.path.join(output_dir, fname)
     fig.savefig(fpath, dpi=200)
-    logging.info('- Exposure concentration by percentile figure output as {}'.format(fname))
+    logging.info('- [EJ] Exposure concentration by percentile figure output as {}'.format(fname))
     
     return

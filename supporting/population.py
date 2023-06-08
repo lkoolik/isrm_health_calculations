@@ -4,7 +4,7 @@
 Population Data Object
 
 @author: libbykoolik
-last modified: 2022-08-10
+last modified: 2023-06-07
 """
 
 # Import Libraries
@@ -18,6 +18,8 @@ from scipy.io import netcdf_file as nf
 import os
 from os import path
 import sys
+sys.path.append('./scripts')
+from tool_utils import *
 
 #%% Define the Population Object
 class population:
@@ -48,30 +50,30 @@ class population:
     '''
     def __init__(self, file_path, load_file=True, verbose=False):
         ''' Initializes the Population object'''        
-        logging.info('\n << Reading Population Census Data for EJ Exposure Calculations >>')
         
         # Gather meta data
         self.file_path = file_path
         self.file_type = file_path.split('.')[-1].lower()
         self.load_file = load_file
         self.verbose = verbose
-        verboseprint = logging.info if self.verbose else lambda *a, **k:None # for logging
-        verboseprint('- Creating a new Census Tract population object from {}'.format(self.file_path))
+        
+        # Return a starting statement
+        verboseprint(self.verbose, '- [POPULATION] Creating a new population object from {}'.format(self.file_path))
         
         # Initialize population object by reading in the feather file
         self.valid_file = self.check_path()
         
         if not self.valid_file:
-            logging.info('\n << ERROR: The filepath provided is not correct. Please correct and retry. >>')
+            logging.info('\n << [POPULATION] ERROR: The filepath provided is not correct. Please correct and retry. >>')
             sys.exit()
         
         # Read in the data
         if self.load_file == True and self.valid_file:
-            verboseprint('- Attempting to load the population data. This step may take some time.')
+            verboseprint(self.verbose, '- [POPULATION] Attempting to load the population data. This step may take some time.')
             self.pop_all, self.pop_geo, self.crs = self.load_population()
             self.pop_exp = self.make_pop_exp()
             self.pop_hia = self.make_pop_hia()
-            verboseprint('- Population successfully loaded.')        
+            verboseprint(self.verbose, '- [POPULATION] Population data successfully loaded.')        
             
     def __str__(self):
         return '< Population object for year '+str(self.year)+ '>'
@@ -154,11 +156,10 @@ class population:
     
     def allocate_population(self, pop_obj, new_geometry, new_geometry_ID, hia_flag):
         ''' Reallocates the population into the new geometry using a spatial intersect '''
-        if self.verbose:
-            if hia_flag:
-                logging.info('- Allocating age-stratified population from population input file to ISRM grid cells.')
-            else:
-                logging.info('- Allocating total population from population input file to ISRM grid cells.')
+        if hia_flag:
+            verboseprint(self.verbose, '- [HEALTH] Allocating age-stratified population from population input file to ISRM grid cells.')
+        else:
+            verboseprint(self.verbose, '- [POPULATION] Allocating total population from population input file to ISRM grid cells.')
         
         # Confirm that the coordinate reference systems match
         #assert pop_tmp.crs == new_geometry.crs, 'Coordinate reference system does not match. Population cannot be reallocated'
@@ -217,7 +218,9 @@ class population:
             new_alloc_pop['END_AGE'] = new_alloc_pop['START_AGE'].astype(int)
         
         # Print statement
-        if self.verbose:
-            logging.info('- Census tract population data successfully re-allocated to the ISRM grid.')
+        if hia_flag:
+            verboseprint(self.verbose, '- [HEALTH] Census tract population data successfully re-allocated to the ISRM grid with age stratification.')
+        else:
+            verboseprint(self.verbose, '- [POPULATION] Census tract population data successfully re-allocated to the ISRM grid.')
         
         return new_alloc_pop
