@@ -21,6 +21,108 @@ import logging
 
 
 #%% ISRM Tool Utils
+def check_setup():
+    '''
+    Checks that the isrm_health_calculations local clone is set up properly
+    
+    INPUTS: None
+        
+    OUTPUTS:
+        - valid_setup: a Boolean indicating if the setup is correct or not
+        
+    '''
+    
+    ## First, get the current working directory
+    cwd = os.getcwd()
+    
+    ## Set up an error tracker
+    errors = 0
+    
+    ## Next, check that each code file exists where it should
+    # Did the scripts and supporting folders get downloaded?
+    script_folder_flag = path.exists(path.join(cwd, 'scripts'))
+    support_folder_flag = path.exists(path.join(cwd, 'supporting'))
+    
+    # If scripts folder is there, check each file
+    if script_folder_flag:
+        
+        # Hard-coded files
+        scripts = ['environmental_justice_calcs.py', 'health_impact_calcs.py', 'tool_utils.py']
+    
+        # Check each one individually
+        for script in scripts:
+            tmp_path = path.join(cwd, 'scripts', script)
+            if not path.exists(tmp_path) or not path.isfile(tmp_path):
+                print('* Missing script file in the scripts directory: {}'.format(script))
+                errors += 1
+                
+    else: # Tell user everything is missing
+        print('* Missing script folder, which should contain files: ', ', '.join(scripts))
+        errors += 1
+    
+    # If scripts folder is there, check each file
+    if support_folder_flag:
+        
+        # Hard-coded files
+        supports = ['concentration.py', 'concentration_layer.py', 'control_file.py', 'emissions.py',
+                    'health_data.py', 'isrm.py', 'population.py']
+        
+        # Check each one individually
+        for support in supports:
+            tmp_path = path.join(cwd, 'supporting', support)
+            if not path.exists(tmp_path) or not path.isfile(tmp_path):
+                print('* Missing supporting file in the supporting directory: {}'.format(support))
+                errors += 1
+                
+    else: # Tell user everything is missing
+        print('* Missing supporting folder, which should contain files: ', ', '.join(supports))
+        errors += 1
+            
+    ## Next, check for the necessary directories
+    for sub in ['outputs', 'templates']:
+        if not path.exists(path.join(cwd, sub)):
+            print('* Missing {} sub-directory in isrm_health_calculations.'.format(sub))
+            errors += 1
+    
+    ## Finally, check if all data are present.
+    # First ensure that the data folder exists
+    data_folder_flag = path.exists(path.join(cwd, 'data'))
+    
+    # If there is a data folder, continue with check
+    if data_folder_flag:
+        necessary_data = ['air_basins.feather', 'air_districts.feather', 'benmap_incidence.feather',
+                          'ca_border.feather', 'ca2010.feather', 'counties.feather']
+        
+        for data in necessary_data:
+            tmp_path = path.join(cwd, 'data', data)
+            if not path.exists(tmp_path) or not path.isfile(tmp_path):
+                print('* Missing data file in the data directory: {}'.format(data))
+                errors += 1
+                
+    else: # Missing data folder
+        print('* Missing data sub directory in isrm_health_calculations.')
+        errors += 1
+        
+    ## Define the setup as valid only if there are no errors
+    valid_setup = errors == 0
+    
+    ## Check if ISRM is there, but don't count as error if not there (just alert user)
+    if not path.exists(path.join(cwd, 'data', 'CA_ISRM')):
+        print('- No CA_ISRM file found in the data directory. Be sure to supply the currect filepath of your ISRM directory when running the tool.')
+        
+    else:
+        isrm_files = ['isrm_geo.feather', 'ISRM_NH3.npy', 'ISRM_NOX.npy', 'ISRM_PM25.npy',
+                      'ISRM_SOX.npy', 'ISRM_VOC.npy']
+        for f in isrm_files:
+            tmp_path = path.join(cwd, 'data', 'CA_ISRM', f)
+            if not path.exists(tmp_path) or not path.isfile(tmp_path):
+                print('- Found CA_ISRM but the folder is missing the following file: {}'.format(f))
+    
+    if valid_setup:
+        print('Set-up is correctly done. Script files, supporting script files, and key data files are stored in the proper place.')
+        
+    return valid_setup
+
 def setup_logging(debug_mode):
     '''
     Sets up the log file system for runs.
@@ -87,7 +189,7 @@ def report_version():
 
     logging.info('╔════════════════════════════════╗')
     logging.info('║ ISRM Health Calculations Tool  ║')
-    logging.info('║ Version 0.8.0                  ║')
+    logging.info('║ Version 0.8.1                  ║')
     logging.info('╚════════════════════════════════╝')
     logging.info('\n')
     return
