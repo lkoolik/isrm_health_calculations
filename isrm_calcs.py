@@ -43,9 +43,11 @@ parser = argparse.ArgumentParser(description="Runs the ISRM-based tool for estim
 # Add necessary arguments
 parser.add_argument("-i", "--inputs", help="control file path", type=str)
 parser.add_argument("--debug", help="enable for debugging mode", action="store_true")
+parser.add_argument("--check-setup", help="checks to see if your package is properly set up", action="store_true")
 
 # Parse all arguments
 args = parser.parse_args()
+check_setup_flag = args.check_setup
 debug_mode = args.debug   
 
 #%% Run Program
@@ -53,6 +55,11 @@ if __name__ == "__main__":
 
     # Start the timer
     start_time = time.time()
+    
+    # If check setup is enabled, run the setup check function in tool_utils
+    if check_setup_flag:
+        check_setup()
+        quit()
     
     #% Create the log file and update logging configuration
     tmp_logger = setup_logging(debug_mode) 
