@@ -51,7 +51,7 @@ Once all layers are done:
 4. **Sum all Concentrations**: concentrations of PM<sub>2.5</sub> are summed by ISRM grid cell.
 
 ### Health Module Methodology ###
-The ISRM calculations health module follows US EPA BenMAP CE methodology and CARB guidance. 
+The ISRM Tool calculations health module follows US EPA BenMAP CE methodology and CARB guidance. 
 
 Currently, the tool is only built out to use the Krewski et al. (2009), endpoint parameters and functions.([*](https://www.healtheffects.org/publication/extended-follow-and-spatial-analysis-american-cancer-society-study-linking-particulate)) The Krewski function is as follows:
 
@@ -69,6 +69,9 @@ where $\beta$ is the endpoint parameter from Krewski et al. (2009), $d$ is the d
 Once all endpoints are done:
 
 3. **Export and Visualize**: excess mortality is exported as a shapefile and as a plot.
+
+### Other Features ###
+The ISRM Tool has a command called `check-setup` that allows the user to make sure that all of the code and data files are properly saved and named in order to make sure that the program will run.
 
 ----
 
@@ -127,7 +130,9 @@ Python libraries can be installed by running `pip install -r requirements.txt` o
 The `isrm_calcs.py` script is the main script file that drives the tool. This script operates the command line functionality, defines the health impact calculation objects, calls each of the supporting functions, and outputs the desired files. The `isrm_calcs.py` script is not split into functions or objects, instead, it is run through two sections: (1) Initialization and (2) Run Program.
 
 #### Initialization
-In the initialization section of `isrm_calcs.py`, the parser object is created in order to interface with the command line. The parser object is created using the `argparse` library. Currently, the only arguments accepted by the parser object are `-i` for input file and `-h` for help. 
+In the initialization section of `isrm_calcs.py`, the parser object is created in order to interface with the command line. The parser object is created using the `argparse` library. 
+
+Currently, the only arguments accepted by the parser object are `-i` for input file, `-h` for help, and `--check-setup` to run a setup check. 
 
 Once the parser is defined, the control file object is created using `control_file.py` class object. A number of metadata variables are defined from the control file. 
 
@@ -611,7 +616,18 @@ $$ 1 - ( \frac{1}{\exp(\beta_{d} \times C_{i})} ) \times I_{i,d,g} \times P_{i,g
 #### `tool_utils.py` 
 The `tool_utils` library contains a handful of scripts that are useful for code execution.
 
-1. `setup_logging`: sets up the log file capability using the `logging` library
+1. `check_setup`: checks that the isrm_health_calculations local clone is set up properly
+   1. Inputs: None
+   2. Outputs:
+      * `valid_setup`: a Boolean indicating if the setup is valid or not
+   3. Methodology:
+      1. Gets the programs current working directory.
+      2. Checks that all the script and supporting files exist where they are supposed to.
+      3. Checks that all key data files are saved where they should (not including ISRM)
+      4. Checks that the CA_ISRM is located in the data folder with all necessary objects, but does not consider this an improper setup, as the user may have their own ISRM.
+      5. Reports any missing files or directories.
+
+2. `setup_logging`: sets up the log file capability using the `logging` library
    1. Inputs:
       * `debug_mode`: a Boolean indicating if log statements should be returned in debug mode or not
    2. Outputs:
@@ -622,7 +638,7 @@ The `tool_utils` library contains a handful of scripts that are useful for code 
       3. Suppresses all other library warnings and information.
       4. Sets the formatting system for log statements.
 
-2. `verboseprint`: sets up the verbose printing mechanism for global usage
+3. `verboseprint`: sets up the verbose printing mechanism for global usage
    1. Inputs:
       * `verbose`: a Boolean indicating if it is in verbose mode or not
       * `text`: a string to be returned if the program is in verbose mode
@@ -632,12 +648,12 @@ The `tool_utils` library contains a handful of scripts that are useful for code 
       2. If True, creates a log statement.
       3. If False, does nothing. 
 
-3. `report_version`: reports the current working version of the tool
+4. `report_version`: reports the current working version of the tool
    1. Inputs: None
    2. Outputs: None
    3. Methodology: adds statements to the log file about the tool version
 
-4. `create_output_dir`: creates the output directory for saving files
+5. `create_output_dir`: creates the output directory for saving files
    1. Inputs:
       * `batch`: the batch name 
       * `name`: the run name
@@ -650,7 +666,7 @@ The `tool_utils` library contains a handful of scripts that are useful for code 
       3. Creates `f_out` by removing the 'out' before the `output_dir`.
       4. Creates the output directory.
 
-5. `create_shape_out`: creates the output directory for saving shapefiles
+6. `create_shape_out`: creates the output directory for saving shapefiles
    1. Inputs:
       * `output_dir`: a filepath string for the output directory
    2. Outputs:
@@ -659,7 +675,7 @@ The `tool_utils` library contains a handful of scripts that are useful for code 
       1. Creates a directory within the `output_dir` called 'shapes'.
       2. Stores this name as `shape_out`.
 
-6. `get_output_region`: creates the output region geodataframe
+7. `get_output_region`: creates the output region geodataframe
    1. Inputs:
       * `region_of_interest`:  the name of the region to be contained in the `output_region`
       * `region_category`: a string containing the region category for the output region, must be one of 'AB','AD', or 'C' for Air Basins, Air Districts, and Counties
