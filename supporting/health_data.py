@@ -4,7 +4,7 @@
 Health Impact Function Meta Data Object
 
 @author: libbykoolik
-last modified: 2023-03-15
+last modified: 2023-06-09
 """
 
 # Import Libraries
@@ -84,7 +84,7 @@ class health_data:
         # Un-pivot the population data to have separate columns for RACE and POPULATION
         population = population.melt(id_vars=['ISRM_ID','START_AGE', 'END_AGE','geometry'], 
                                      value_vars=['ASIAN','BLACK','HISLA','INDIG',
-                                                 'WHITE','TOTAL'], 
+                                                 'WHITE','TOTAL', 'OTHER'], 
                                      var_name='RACE', value_name='POPULATION', 
                                      ignore_index=False)
         

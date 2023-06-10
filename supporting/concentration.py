@@ -4,7 +4,7 @@
 Total Concentration Data Object
 
 @author: libbykoolik
-last modified: 2023-06-07
+last modified: 2023-06-09
 """
 
 # Import Libraries
@@ -187,7 +187,7 @@ class concentration:
             verboseprint(self.verbose, '   - [CONCENTRATION] Exporting a map of total PM2.5 concentrations as a png.')
             fig.savefig(fpath, dpi=200)
             logging.info('- [CONCENTRATION] Map of concentrations output as {}'.format(fname))
-        return
+        return 
 
     def export_concentrations(self, output_dir, f_out):
         ''' Exports concentration as a shapefile (detailed or total) '''
@@ -221,4 +221,4 @@ class concentration:
             gdf_export.to_file(fpath)
             logging.info('   - [CONCENTRATION] Total concentrations output as {}'.format(fname))
         
-        return
+        return 

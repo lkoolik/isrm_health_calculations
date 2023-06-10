@@ -3,7 +3,7 @@ A repository of scripts used for converting emissions to concentrations and heal
 
 *Libby Koolik, UC Berkeley*
 
-Last modified June 8, 2023
+Last modified June 9, 2023
 
 ## Table of Contents
 * Purpose and Goals ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#purpose-and-goals))
@@ -473,22 +473,47 @@ The `environmental_justice_calcs` script file contains a number of functions tha
       1. Calls the `create_exposure_df` function.
       2. Calls the `get_overall_disparity` function.
       3. Calls the `estimate_exposure_percentile` function.
-7. `export_exposure`: exports the exposure concentrations and population estimates as a shapefile
+7. `export_exposure_gdf`: exports the exposure concentrations and population estimates as a shapefile
+   1. Inputs: 
+      * `exposure_gdf`: a dataframe containing the exposure concentrations and population estimates for each group
+      * `shape_out`: a filepath string of the location of the shapefile output directory
+      * `f_out`: the name of the file output category (will append additional information)
+   2. Outputs:
+      * A shapefile will be output into the `shape_out` directory.
+      * The function returns `fname` as a surrogate for completion (otherwise irrelevant)
+   3. Methodology:
+      1. Creates a filename and path for the export.
+      2. Updates the columns slightly for shapefile naming
+      3. Exports the shapefile.
+8. `export_exposure_csv`: exports the exposure concentrations and population estimates as a CSV file
    1. Inputs: 
       * `exposure_gdf`: a dataframe containing the exposure concentrations and population estimates for each group
       * `output_dir`: a filepath string of the location of the output directory
       * `f_out`: the name of the file output category (will append additional information)
    2. Outputs:
-      * The function does not return anything, but a shapefile will be output into the `output_dir`.
+      * A CSV file will be output into the `output_dir`.
+      * The function returns `fname` as a surrogate for completion (otherwise irrelevant)
    3. Methodology:
       1. Creates a filename and path for the export.
-      2. Updates the columns slightly for shapefile naming
-      3. Exports the shapefile.
-8. `plot_percentile_exposure`: creates a plot of exposure concentration by percentile of each group's population
+      2. Updates the column names for more straightforward interpretation
+      3. Exports the results as a comma-separated value (CSV) file.
+9. `export_exposure_disparity`: exports the exposure concentrations and population estimates as a shapefile
+   1. Inputs: 
+      * `exposure_disparity`: a dataframe containing the population-weighted mean exposure concentrations for each group
+      * `output_dir`: a filepath string of the location of the output directory
+      * `f_out`: the name of the file output category (will append additional information)
+   2. Outputs:
+      * A shapefile will be output into the `output_dir`.
+      * The function returns `fname` as a surrogate for completion (otherwise irrelevant)
+   3. Methodology:
+      1. Creates a filename and path for the export.
+      2. Updates the columns and values slightly for more straightforward interpretation
+      3. Exports the results as a comma-separated value (CSV) file.
+10. `plot_percentile_exposure`: creates a plot of exposure concentration by percentile of each group's population
    1. Inputs: 
       * `output_dir`: a filepath string of the location of the output directory
       * `f_out`: the name of the file output category (will append additional information)
-      * `df_pctl`: a dataframe of exposure concentrations by percentile of population exposed by group
+      * `exposure_pctl`: a dataframe of exposure concentrations by percentile of population exposed by group
       * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed
    2. Outputs:
       * The function does not return anything, but a lineplot image (PNG) will be output into the `output_dir`.
@@ -498,6 +523,27 @@ The `environmental_justice_calcs` script file contains a number of functions tha
       3. Maps the racial/ethnic group names to better formatted names (e.g., "HISLA" --> "Hispanic/Latino")
       4. Draws the figure using the `seaborn` library's `lineplot` function.
       5. Saves the file as `f_out` + '_PM25_Exposure_Percentiles.png' into the `out_dir`.
+11. `export_exposure`: calls each of the exposure output functions in parallel
+   1. Inputs: 
+      * `exposure_gdf`: a dataframe containing the exposure concentrations and population estimates for each group
+      * `exposure_disparity`: a dataframe containing the population-weighted mean exposure concentrations for each group
+      * `exposure_pctl`: a dataframe of exposure concentrations by percentile of population exposed by group
+      * `shape_out`: a filepath string of the location of the shapefile output directory
+      * `output_dir`: a filepath string of the location of the output directory
+      * `f_out`: the name of the file output category (will append additional information)
+      * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed 
+   2. Outputs:
+      * The function does not return anything, but a shapefile will be output into the `output_dir`.
+   3. Methodology:
+      1. Creates a filename and path for the export.
+      2. Updates the columns slightly for shapefile naming
+      3. Exports the shapefile.
+12. `create_rename_dict`: makes a global rename code dictionary for easier updating
+   1. Inputs: None
+   2. Outputs:
+      * `logging_code`: a dictionary that maps endpoint names to log statement codes
+   3. Methodology:
+      1. Defines a dictionary and returns it.
 
 #### `health_impact_calcs.py` 
 The `health_impact_calcs` script file contains a number of functions that help calculate health impacts from exposure concentrations.
@@ -597,7 +643,34 @@ $$ 1 - ( \frac{1}{\exp(\beta_{d} \times C_{i})} ) \times I_{i,d,g} \times P_{i,g
       2. Creates endpoint short labels and updates column names since shapefiles can only have ten characters in column names.
       3. Exports the geodataframe to shapefile.
 
-7. `visualize_and_export_hia`: calls `plot_total_mortality` and `export_health_impacts` in one clean function call.
+7. `export_health_impacts_csv`: exports mortality as a csv
+   1. Inputs:
+      * `hia_df`: a dataframe containing excess mortality for the `endpoint` using the `function` provided
+      * `group`: the racial/ethnic group name
+      * `endpoint`: a string containing either 'ALL CAUSE', 'ISCHEMIC HEART DISEASE', or 'LUNG CANCER'
+      * `output_dir`: a filepath string of the location of the output directory
+      * `f_out`: the name of the file output category (will append additional information) 
+      * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed      
+   2. Outputs
+      * `fname`: a string filename made by combining the `f_out` with the `group` and `endpoint`.
+   3. Methodology:
+      1. Creates the output file path (`fname`) using inputs.
+      2. Revises column names for clarity
+      3. Exports the geodataframe to csv.
+
+8. `create_summary_hia`: creates a summary table of health impacts by racial/ethnic group
+   1. Inputs:
+      * `hia_df`: a dataframe containing excess mortality for the `endpoint` using the `function` provided
+      * `endpoint`: a string containing either 'ALL CAUSE', 'ISCHEMIC HEART DISEASE', or 'LUNG CANCER'
+      * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed   
+      * `l`: an intermediate string that has the endpoint label string (e.g., ACM_)
+      * `endpoint_nice`: an intermediate string that has a nicely formatted version of the endpoint (e.g., All Cause)    
+   2. Outputs
+      * `hia_summary`: a summary dataframe containing population, excess mortality, and excess mortality rate per demographic group
+   3. Methodology:
+      1. TO UPDATE
+
+x. `visualize_and_export_hia`: calls `plot_total_mortality` and `export_health_impacts` in one clean function call.
    1. Inputs:
       * `hia_df`: a dataframe containing excess mortality for the `endpoint` using the `function` provided
       * `ca_shp_fp`: a filepath string of the California state boundary shapefile

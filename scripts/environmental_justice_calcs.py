@@ -4,7 +4,7 @@
 EJ Functions
 
 @author: libbykoolik
-last modified: 2023-03-15
+last modified: 2023-06-09
 """
 
 # Import Libraries
@@ -21,6 +21,7 @@ from os import path
 import sys
 sys.path.append('./scripts')
 from tool_utils import *
+import concurrent.futures
 
 #%%
 def create_exposure_df(conc, isrm_pop_alloc, verbose):
@@ -192,31 +193,34 @@ def run_exposure_calcs(conc, pop_alloc, verbose):
           disparity of each group
     
     '''
+    # Call each of the functions in series
     exposure_gdf = create_exposure_df(conc, pop_alloc, verbose)
     exposure_disparity = get_overall_disparity(exposure_gdf)
     exposure_pctl = estimate_exposure_percentile(exposure_gdf, verbose)
     
     return exposure_gdf, exposure_pctl, exposure_disparity 
 
-def export_exposure(exposure_gdf, output_dir, f_out):
+def export_exposure_gdf(exposure_gdf, shape_out, f_out):
     ''' 
     Exports the exposure_gdf dataframe as a shapefile 
     
     INPUTS:
         - exposure_gdf: a dataframe containing the exposure concentrations and population
           estimates for each group
-        - output_dir: a filepath string of the location of the output directory
+        - shape_out: a filepath string of the location of the shapefile output directory
         - f_out: the name of the file output category (will append additional information)
         
     OUTPUTS:
-        - None
+        - None (fname is surrogate for completion)
     
     '''
-    logging.info('- Exporting exposure geodataframe as a shapefile.')
-    # If detailed flag is True, export detailed shapefile
-        
+    
+    # Return a log statement
+    logging.info('- [EJ] Exporting exposure geodataframe as a shapefile.')
+    
+    # Create the file name and path
     fname = str.lower(f_out + '_exposure_concentrations.shp') # File Name
-    fpath = os.path.join(output_dir, fname)
+    fpath = os.path.join(shape_out, fname)
     
     # Update the columns slightly
     exposure_gdf = exposure_gdf[['ISRM_ID', 'PM25_UG_M3', 'TOTAL', 'ASIAN', 'BLACK',
@@ -227,22 +231,100 @@ def export_exposure(exposure_gdf, output_dir, f_out):
     exposure_gdf.to_file(fpath)
     logging.info('   - [EJ] Exposure concentrations output as {}'.format(fname))
 
-    return
+    return fname #placeholder for parallelization
 
-def plot_percentile_exposure(output_dir, f_out, df_pctl, verbose):
+def export_exposure_csv(exposure_gdf, output_dir, f_out):
+    ''' 
+    Exports the exposure_gdf dataframe as a CSV file 
+    
+    INPUTS:
+        - exposure_gdf: a dataframe containing the exposure concentrations and population
+          estimates for each group
+        - output_dir: a filepath string of the location of the output directory
+        - f_out: the name of the file output category (will append additional information)
+        
+    OUTPUTS:
+        - None (fname is surrogate for completion)
+    
+    '''
+    
+    # Return a log statement
+    logging.info('- [EJ] Exporting exposure geodataframe as a comma separated value text file.')
+    
+    # Create the file name and path
+    fname = str.lower(f_out + '_exposure_concentrations.csv') # File Name
+    fpath = os.path.join(output_dir, fname)
+    
+    # Update the columns slightly
+    exposure_gdf = exposure_gdf[['ISRM_ID', 'PM25_UG_M3', 'TOTAL', 'ASIAN', 'BLACK',
+                                 'HISLA', 'INDIG', 'PACIS', 'WHITE', 'OTHER']].copy()
+
+    # Change column names
+    rename_dict = create_rename_dict()
+    rename_dict = {k: v + ' (# People)' for k, v in rename_dict.items()} # Add units to population
+    exposure_gdf.rename(columns=rename_dict, inplace=True)
+    exposure_gdf.rename(columns={'PM25_UG_M3':'PM2.5 Concentration (ug/m3)'}, inplace=True)
+
+    # Export to file
+    exposure_gdf.to_csv(fpath, index=False)
+    logging.info('   - [EJ] Exposure concentrations output as {}'.format(fname))
+
+    return fname #placeholder for parallelization
+
+
+def export_exposure_disparity(exposure_disparity, output_dir, f_out):
+    ''' 
+    Exports the exposure_disparity dataframe as a CSV file 
+    
+    INPUTS:
+        - exposure_disparity: a dataframe containing the PWM, absolute disparity, and relative
+          disparity of each group
+        - output_dir: a filepath string of the location of the output directory
+        - f_out: the name of the file output category (will append additional information)
+        
+    OUTPUTS:
+        - None (fname is surrogate for completion)
+    
+    '''
+    
+    # Return a log statement
+    logging.info('- [EJ] Exporting population-weighted mean exposures for each racial/ethnic group.')
+    
+    # Create the file name and path
+    fname = str.lower(f_out + '_exposure_disparity.csv') # File Name
+    fpath = os.path.join(output_dir, fname)
+    
+    # Update the values slightly
+    rename_dict = create_rename_dict()
+    exposure_disparity['Group'] = exposure_disparity['Group'].map(rename_dict)
+    exposure_disparity['Relative Disparity'] = exposure_disparity['Relative Disparity'] * 100.0
+    
+    # Fix the columns for clarity of units
+    exposure_disparity.rename(columns={'Group PWM':'Group PWM (ug/m3)',
+                                       'Absolute Disparity':'Absolute Disparity (ug/m3)',
+                                       'Relative Disparity':'Relative Disparity (%)'},
+                              inplace=True)
+
+    # Export to file
+    exposure_disparity.to_csv(fpath, index=False)
+    logging.info('   - [EJ] Exposure concentrations output as {}'.format(fname))
+
+    return fname
+
+def plot_percentile_exposure(output_dir, f_out, exposure_pctl, verbose):
     ''' 
     Creates a percentile plot by group 
     
     INPUTS:
         - output_dir: a filepath string of the location of the output directory
         - f_out: the name of the file output category (will append additional information)
-        - df_pctl: a dataframe of exposure concentrations by percentile of population
+        - exposure_pctl: a dataframe of exposure concentrations by percentile of population
           exposed by group
         - verbose: a Boolean indicating whether or not detailed logging statements should
           be printed
         
     OUTPUTS:
-        - None
+        - None (fname is surrogate for completion)
     
     '''
     verboseprint(verbose, '- [EJ] Drawing plot of exposure by percentile of each racial/ethnic group.')
@@ -250,16 +332,13 @@ def plot_percentile_exposure(output_dir, f_out, df_pctl, verbose):
     groups = ['TOTAL', 'ASIAN', 'BLACK', 'HISLA', 'INDIG', 'PACIS', 'WHITE','OTHER']
     
     # Melt the dataframe for easier use of seaborn
-    pctl_melt = pd.melt(df_pctl, id_vars='PM25_UG_M3',
+    pctl_melt = pd.melt(exposure_pctl, id_vars='PM25_UG_M3',
                         value_vars=groups,var_name='Racial/Ethnic Group', 
                         value_name='Percentile')
     
     # Adjust formatting for a prettier plot
     pctl_melt['Percentile'] = pctl_melt['Percentile']*100
-    rename_dict = {'TOTAL':'Total', 'ASIAN':'Asian','BLACK':'Black',
-                              'HISLA':'Hispanic/Latino', 'INDIG':'Indigenous', 
-                              'PACIS':'Pacific Islander', 'WHITE':'White', 
-                              'OTHER':'Other'}
+    rename_dict = create_rename_dict()
     pctl_melt['Racial/Ethnic Group'] = pctl_melt['Racial/Ethnic Group'].map(rename_dict)
     sns.set_theme(context="notebook", style="whitegrid", font_scale=1.75)
 
@@ -277,4 +356,64 @@ def plot_percentile_exposure(output_dir, f_out, df_pctl, verbose):
     fig.savefig(fpath, dpi=200)
     logging.info('- [EJ] Exposure concentration by percentile figure output as {}'.format(fname))
     
+    return fname
+
+def export_exposure(exposure_gdf, exposure_disparity, exposure_pctl, shape_out, output_dir, f_out, verbose):
+    ''' 
+    Calls each of the exposure output functions in parallel
+    
+    INPUTS:
+        - exposure_gdf: a dataframe containing the exposure concentrations and population 
+          estimates for each group
+        - exposure_disparity: a dataframe containing the population-weighted mean exposure 
+          concentrations for each group
+        - exposure_pctl: a dataframe of exposure concentrations by percentile of population 
+          exposed by group
+        - shape_out: a filepath string of the location of the shapefile output directory
+        - output_dir: a filepath string of the location of the output directory
+        - f_out: the name of the file output category (will append additional information)
+        - verbose: a Boolean indicating whether or not detailed logging statements should be 
+          printed 
+        
+    OUTPUTS:
+        - None
+    
+    '''
+    
+    # Return a log statements
+    logging.info('- [EJ] Exporting exposure outputs.')
+
+    # Call export functions in parallel
+    with concurrent.futures.ProcessPoolExecutor(max_workers=5) as ej_executor:
+        
+        # Submit each export function to the executor
+        gdf_export_future = ej_executor.submit(export_exposure_gdf, exposure_gdf, shape_out, f_out)
+        csv_export_future = ej_executor.submit(export_exposure_csv, exposure_gdf, output_dir, f_out)
+        disp_export_future = ej_executor.submit(export_exposure_disparity, exposure_disparity, output_dir, f_out)
+        plot_export_future = ej_executor.submit(plot_percentile_exposure, output_dir, f_out, exposure_pctl, verbose)
+        
+        # Wait for all to finish
+        (tmp, tmp, tmp, tmp) = (gdf_export_future.result(), csv_export_future.result(),
+                                disp_export_future.result(), plot_export_future.result())
+    
+    logging.info('- [EJ] All exposure outputs have been saved.')
+
     return
+
+def create_rename_dict():
+    ''' 
+    Makes a global rename code dictionary for easier updating
+    
+    INPUTS: None
+     
+    OUTPUTS: 
+         - rename_dict: a dictionary that maps demographic group names to codes
+         
+    '''
+     
+    # Set rename dictionary one time
+    rename_dict = {'TOTAL':'Total', 'ASIAN':'Asian','BLACK':'Black',
+                   'HISLA':'Hispanic/Latino', 'INDIG':'Native American', 
+                   'PACIS':'Pacific Islander', 'WHITE':'White', 'OTHER':'Other'}
+    
+    return rename_dict

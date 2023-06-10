@@ -4,7 +4,7 @@
 Health Impact Functions
 
 @author: libbykoolik
-last modified: 2023-06-07
+last modified: 2023-06-09
 """
 
 # Import Libraries
@@ -151,7 +151,8 @@ def calculate_excess_mortality(conc, health_data_pop_inc, pop, endpoint, functio
                         'HISLA':endpoint+'_HISLA',
                         'INDIG':endpoint+'_INDIG',
                         'TOTAL':endpoint+'_TOTAL',
-                        'WHITE':endpoint+'_WHITE'}
+                        'WHITE':endpoint+'_WHITE',
+                        'OTHER':endpoint+'_OTHER'}
     pop_inc_conc.rename(columns=col_rename_dict, inplace=True)
     
     # Merge the population back in
@@ -166,7 +167,7 @@ def calculate_excess_mortality(conc, health_data_pop_inc, pop, endpoint, functio
     pop_inc_conc = pop_inc_conc[['ISRM_ID', 'TOTAL_CONC_UG/M3', 'ASIAN', 'BLACK', 'HISLA',
                                  'INDIG', 'WHITE', 'TOTAL', endpoint+'_ASIAN', endpoint+'_BLACK', 
                                  endpoint+'_HISLA', endpoint+'_INDIG',endpoint+'_TOTAL', 
-                                 endpoint+'_WHITE', 'geometry']]
+                                 endpoint+'_WHITE', endpoint+'_OTHER', 'geometry']]
     
     # Print statement
     logging.info('- {} {} health impacts calculated.'.format(logging_code, endpoint.title()))
@@ -346,12 +347,14 @@ def export_health_impacts(hia_df, group, endpoint, output_dir, f_out, verbose):
                      'INDIG':'POP_INDIG',
                      'WHITE':'POP_WHITE',
                      'TOTAL':'POP_TOTAL',
+                     'OTHER':'POP_OTHER',
                      endpoint+'_ASIAN':l+'ASIAN',
                      endpoint+'_BLACK':l+'BLACK',
                      endpoint+'_HISLA':l+'HISLA',
                      endpoint+'_INDIG':l+'INDIG',
                      endpoint+'_TOTAL':l+'TOTAL',
-                     endpoint+'_WHITE':l+'WHITE'}
+                     endpoint+'_WHITE':l+'WHITE',
+                     endpoint+'_OTHER':l+'OTHER'}
     
     hia_df.rename(columns=col_name_dict, inplace=True)
     
@@ -360,6 +363,117 @@ def export_health_impacts(hia_df, group, endpoint, output_dir, f_out, verbose):
     logging.info('- {} Excess {} mortality from PM2.5 exposure output as a shapefile as {}'.format(logging_code, endpoint.lower(), fname))
     
     return fname
+
+def export_health_impacts_csv(hia_df, endpoint, output_dir, f_out, verbose):
+    ''' 
+    Exports total mortality as a csv file. 
+    
+    INPUTS:
+        - hia_df: a dataframe containing excess mortality for the `endpoint` using the 
+          `function` provided
+        - endpoint: a string containing either 'ALL CAUSE', 'ISCHEMIC HEART DISEASE', or 
+          'LUNG CANCER'
+        - output_dir: a filepath string of the location of the output directory
+        - f_out: the name of the file output category (will append additional information) 
+        - verbose: a Boolean indicating whether or not detailed logging statements should 
+          be printed  
+        
+    OUTPUTS:
+        - fname: a string filename made by combining the `f_out` with the `group`
+          and `endpoint`.
+        
+    '''
+    logging_code = create_logging_code()[endpoint]
+    verboseprint(verbose, '- {} Exporting excess {} mortality from PM2.5 exposure as a CSV file.'.format(logging_code, endpoint.lower()))
+        
+    # Create the output file directory and name string
+    fname = f_out + '_' + endpoint + '_excess_mortality.csv'
+    fname = str.lower(fname)
+    fpath = os.path.join(output_dir, fname)
+    logging_code = create_logging_code()[endpoint]
+    
+    # Get endpoint shortlabel
+    endpoint_nice = endpoint.title()
+    endpoint_labels = {'ALL CAUSE':'ACM_',
+                       'ISCHEMIC HEART DISEASE':'IHD_',
+                       'LUNG CANCER':'CAN_'}
+    l = endpoint_labels[endpoint]
+    
+    # Create the summary HIA
+    hia_summary = create_summary_hia(hia_df, endpoint, verbose, l, endpoint_nice)
+    
+    ## Update column names
+    # Import the rename dictionary and make a few edits
+    rename_dict = create_rename_dict()
+    pop_rename_dict = {'POP_'+k: v + ' (# People)' for k, v in rename_dict.items()} # Add units to population
+    hia_rename_dict = {l+'_'+k:endpoint_nice+' - '+v+' (excess deaths)' for k,v in rename_dict.items()}
+
+    # Rename the columns in series
+    hia_df.rename(columns=pop_rename_dict, inplace=True)
+    hia_df.rename(columns=hia_rename_dict, inplace=True)
+    hia_df.rename(columns={'TOTAL_CONC_UG/M3':'PM2.5 Concentration (ug/m3)'}, inplace=True)
+    
+    # Get rid of geometry column
+    hia_df.drop(['geometry'], axis=1)
+    
+    # Export
+    hia_df.to_csv(fpath, index=False)
+    logging.info('- {} Excess {} mortality from PM2.5 exposure output as a CSV as {}'.format(logging_code, endpoint.lower(), fname))
+    
+    return hia_summary
+
+def create_summary_hia(hia_df, endpoint, verbose, l, endpoint_nice):
+    ''' 
+    Creates a summary table of health impacts by racial/ethnic group 
+    
+    INPUTS:
+        - hia_df: a dataframe containing excess mortality for the `endpoint` using the 
+          `function` provided
+        - endpoint: a string containing either 'ALL CAUSE', 'ISCHEMIC HEART DISEASE', or 
+          'LUNG CANCER'
+        - verbose: a Boolean indicating whether or not detailed logging statements should 
+          be printed   
+        - l: an intermediate string that has the endpoint label string (e.g., ACM_)
+        - endpoint_nice: an intermediate string that has a nicely formatted version
+          of the endpoint (e.g., All Cause)
+    
+    OUTPUTS:
+        - hia_summary: a summary dataframe containing population, excess mortality,
+          and excess mortality rate per demographic group.
+        
+    '''
+    logging_code = create_logging_code()[endpoint]
+    verboseprint(verbose, '- {} Creating a summary table of {} mortality from PM2.5 exposure.'.format(logging_code, endpoint.lower()))
+
+    # Set up a few useful variables
+    groups = ['ASIAN', 'BLACK', 'HISLA', 'INDIG', 'WHITE', 'TOTAL']
+    pop_cols = ['POP_'+grp for grp in groups]
+    hia_cols = [l+grp for grp in groups]
+        
+    # Clean up the hia_df dataframe
+    hia_df.drop(['geometry'], axis=1)
+    
+    # Get the summary results for population
+    pop_df = hia_df[pop_cols].sum().reset_index()
+    pop_df.rename(columns={'index':'Label',0:'Population (# People)'}, inplace=True)
+    pop_df['Group'] = pop_df['Label'].str.split('_').str[1]
+    pop_df = pop_df[['Group','Population (# People)']].copy()
+    
+    # Get the summary results for excess mortality
+    exm_df = hia_df[hia_cols].sum().reset_index()
+    exm_df.rename(columns={'index':'Label',0:endpoint_nice+' Mortality (# Excess Deaths)'}, inplace=True)
+    exm_df['Group'] = exm_df['Label'].str.split('_').str[1]
+    exm_df = exm_df[['Group', endpoint_nice+' Mortality (# Excess Deaths)']].copy()
+    
+    # Combine into a summary table (do not export as CSV yet)
+    hia_summary = pd.merge(pop_df, exm_df, on='Group')
+    hia_summary['Mortality Rate (per 100000)'] = hia_summary[endpoint_nice+' Mortality (# Excess Deaths)']/hia_summary['Population (# People)'] * 100000.0
+    
+    # Revise the Group column for clarity
+    rename_dict = create_rename_dict()
+    hia_summary['Group'] = hia_summary['Group'].map(rename_dict)
+    
+    return hia_summary
 
 def visualize_and_export_hia(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out, shape_out, verbose):
     ''' 
@@ -379,15 +493,73 @@ def visualize_and_export_hia(hia_df, ca_shp_fp, group, endpoint, output_dir, f_o
           be printed      
         
     OUTPUTS:
-        - fname: string of filename used as a surrogate for completion of the function
+        - hia_summary: a summary dataframe containing population, excess mortality,
+          and excess mortality rate per demographic group.
     
     '''    
     logging_code = create_logging_code()[endpoint]
     logging.info('- {} Visualizing and exporting excess {} mortality.'.format(logging_code, endpoint.lower()))
+    
     # Plot the map of mortality
     fname = plot_total_mortality(hia_df, ca_shp_fp, group, endpoint, output_dir, f_out, verbose)
     
     # Export the shapefile
     fname = export_health_impacts(hia_df, group, endpoint, shape_out, f_out, verbose)
+    hia_summary = export_health_impacts_csv(hia_df, endpoint, output_dir, f_out, verbose)
         
-    return fname #returning something fixes parallel bug
+    return hia_summary
+
+def combine_hia_summaries(acm_summary, ihd_summary, lcm_summary, output_dir, f_out, verbose):
+    '''
+    Combines the three endpoint summary tables into one export file
+    
+    INPUTS:
+        - acm_summary: a summary dataframe containing population, excess all-cause 
+          mortality, and all-cause mortality rates
+        - ihd_summary: a summary dataframe containing population, excess IHD 
+          mortality, and IHD mortality rates 
+        - lcm_summary: a summary dataframe containing population, excess lung cancer 
+          mortality, and lung cancer mortality rates
+        - output_dir: a filepath string of the location of the output directory
+        - f_out: the name of the file output category (will append additional information) 
+        - verbose: a Boolean indicating whether or not detailed logging statements should 
+          be printed      
+        
+    OUTPUTS: None
+        
+    '''
+    # Merge ACM and IHD first, then add LCM
+    hia_summary = pd.merge(acm_summary, ihd_summary, on='Group')
+    hia_summary = pd.merge(hia_summary, lcm_summary, on='Group')
+    
+    # Keep only necessary columns
+    hia_summary = hia_summary.loc[:, ~hia_summary.columns.str.startswith('Mortality')]
+    hia_summary = hia_summary.loc[:, ~hia_summary.columns.str.endswith('x')]
+    hia_summary = hia_summary.loc[:, ~hia_summary.columns.str.endswith('y')]
+    
+    
+    # Export results
+    fname = f_out + '_excess_mortality_summary.csv'
+    fname = str.lower(fname)
+    fpath = os.path.join(output_dir, fname)
+    hia_summary.to_csv(fpath, index=False)
+    
+    return
+
+def create_rename_dict():
+    ''' 
+    Makes a global rename code dictionary for easier updating
+    
+    INPUTS: None
+     
+    OUTPUTS: 
+         - rename_dict: a dictionary that maps demographic group names to codes
+         
+    '''
+     
+    # Set rename dictionary one time
+    rename_dict = {'TOTAL':'Total', 'ASIAN':'Asian','BLACK':'Black',
+                   'HISLA':'Hispanic/Latino', 'INDIG':'Native American', 
+                   'PACIS':'Pacific Islander', 'WHITE':'White', 'OTHER':'Other'}
+    
+    return rename_dict
