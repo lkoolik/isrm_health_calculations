@@ -227,10 +227,6 @@ if __name__ == "__main__":
         else: # Just export the EJ figure
             plot_percentile_exposure(output_dir, f_out, exposure_pctl, verbose)
             
-        
-        # # Create the plot and export it
-        # plot_percentile_exposure(output_dir, f_out, exposure_pctl, verbose)
-        
         ### HEALTH MODULE
         if run_health:
             

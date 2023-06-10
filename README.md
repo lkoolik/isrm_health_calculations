@@ -646,7 +646,6 @@ $$ 1 - ( \frac{1}{\exp(\beta_{d} \times C_{i})} ) \times I_{i,d,g} \times P_{i,g
 7. `export_health_impacts_csv`: exports mortality as a csv
    1. Inputs:
       * `hia_df`: a dataframe containing excess mortality for the `endpoint` using the `function` provided
-      * `group`: the racial/ethnic group name
       * `endpoint`: a string containing either 'ALL CAUSE', 'ISCHEMIC HEART DISEASE', or 'LUNG CANCER'
       * `output_dir`: a filepath string of the location of the output directory
       * `f_out`: the name of the file output category (will append additional information) 
@@ -683,7 +682,7 @@ $$ 1 - ( \frac{1}{\exp(\beta_{d} \times C_{i})} ) \times I_{i,d,g} \times P_{i,g
       * `shape_out`: a filepath string for shapefiles
       * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed      
    2. Outputs
-      * `fname`: a string with the file name. This output is generated in order to force a result for the program to wait for. Its value has no significance.
+      * `hia_summary`: a summary dataframe containing population, excess mortality, and excess mortality rate per demographic group
    3. Methodology:
       1. Calls `plot_total_mortality`.
       2. Calls `export_health_impacts.
