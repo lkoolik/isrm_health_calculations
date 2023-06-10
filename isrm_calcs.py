@@ -202,14 +202,13 @@ if __name__ == "__main__":
         verboseprint(verbose, '- Notes about this step will be preceded by the tag [CONCENTRATION].')
         logging.info('\n')
         
-        ''' COMMENT BACK IN
         # Create the map of concentrations
         conc.visualize_concentrations('TOTAL_CONC_UG/M3', output_region, output_dir, f_out, ca_shp_path, export=True)
         
         # Export the shapefiles
         conc.export_concentrations(shape_out, f_out)
         logging.info("- [CONCENTRATION] Concentration files output into: {}.".format(output_dir))
-        '''
+
         ## Perform concentration-related EJ analyses
         exp_pop_alloc = pop.allocate_population(pop.pop_exp, isrmgrid.geodata, 'ISRM_ID', False)
         verboseprint(verbose, '- [POPULATION] Population data is properly allocated to the ISRM grid and ready for EJ calculations.')

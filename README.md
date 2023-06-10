@@ -668,9 +668,11 @@ $$ 1 - ( \frac{1}{\exp(\beta_{d} \times C_{i})} ) \times I_{i,d,g} \times P_{i,g
    2. Outputs
       * `hia_summary`: a summary dataframe containing population, excess mortality, and excess mortality rate per demographic group
    3. Methodology:
-      1. TO UPDATE
+      1. Cleans up the hia_df by changing column names and splitting population and mortality
+      2. Gets total population and mortality by group
+      3. Combines into one dataframe and cleans it up for export
 
-x. `visualize_and_export_hia`: calls `plot_total_mortality` and `export_health_impacts` in one clean function call.
+9. `visualize_and_export_hia`: calls `plot_total_mortality` and `export_health_impacts` in one clean function call.
    1. Inputs:
       * `hia_df`: a dataframe containing excess mortality for the `endpoint` using the `function` provided
       * `ca_shp_fp`: a filepath string of the California state boundary shapefile
@@ -685,6 +687,27 @@ x. `visualize_and_export_hia`: calls `plot_total_mortality` and `export_health_i
    3. Methodology:
       1. Calls `plot_total_mortality`.
       2. Calls `export_health_impacts.
+
+10. `combine_hia_summaries`: combines the three endpoint summary tables into one export file
+   1. Inputs:
+      * `acm_summary`: a summary dataframe containing population, excess all-cause mortality, and all-cause mortality rates
+      * `ihd_summary`: a summary dataframe containing population, excess IHD mortality, and IHD mortality rates 
+      * `lcm_summary`: a summary dataframe containing population, excess lung cancer mortality, and lung cancer mortality rates
+      * `output_dir`: a filepath string of the location of the output directory
+      * `f_out`: the name of the file output category (will append additional information) 
+      * `verbose`: a Boolean indicating whether or not detailed logging statements should be printed 
+   2. Outputs: None
+   3. Methodology:
+      1. Merges the summary dataframes together
+      2. Removes excess columns
+      3. Saves as CSV file
+      
+11. `create_rename_dict`: makes a global rename code dictionary for easier updating
+   1. Inputs: None
+   2. Outputs:
+      * `logging_code`: a dictionary that maps endpoint names to log statement codes
+   3. Methodology:
+      1. Defines a dictionary and returns it.
 
 #### `tool_utils.py` 
 The `tool_utils` library contains a handful of scripts that are useful for code execution.
