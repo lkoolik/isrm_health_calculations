@@ -4,7 +4,7 @@
 Main Run File
 
 @author: libbykoolik
-Last updated: 2023-06-08
+Last updated: 2023-06-09
 """
 #%% Import useful libraries, supporting objects, and scripts
 # Useful libraries for main script
@@ -208,7 +208,7 @@ if __name__ == "__main__":
         # Export the shapefiles
         conc.export_concentrations(shape_out, f_out)
         logging.info("- [CONCENTRATION] Concentration files output into: {}.".format(output_dir))
-        
+
         ## Perform concentration-related EJ analyses
         exp_pop_alloc = pop.allocate_population(pop.pop_exp, isrmgrid.geodata, 'ISRM_ID', False)
         verboseprint(verbose, '- [POPULATION] Population data is properly allocated to the ISRM grid and ready for EJ calculations.')
@@ -221,12 +221,12 @@ if __name__ == "__main__":
         # Estimate exposures and output them
         exposure_gdf, exposure_pctl, exposure_disparity = run_exposure_calcs(conc, exp_pop_alloc, verbose)    
         
-        if output_exposure:
-            export_exposure(exposure_gdf, shape_out, f_out)
-        
-        # Create the plot and export it
-        plot_percentile_exposure(output_dir, f_out, exposure_pctl, verbose)
-        
+        if output_exposure: # Perform all exports in parallel
+            export_exposure(exposure_gdf, exposure_disparity, exposure_pctl, shape_out, output_dir, f_out, verbose)
+            
+        else: # Just export the EJ figure
+            plot_percentile_exposure(output_dir, f_out, exposure_pctl, verbose)
+            
         ### HEALTH MODULE
         if run_health:
             
@@ -282,9 +282,12 @@ if __name__ == "__main__":
                 
                 # We don't actually need anything stored, we just need the program to wait until
                 # all three are done before exiting
-                tmp = allcause_ve_future.result()
-                tmp = ihd_ve_future.result()
-                tmp = lungcancer_ve_future.result()
+                acm_summary = allcause_ve_future.result()
+                ihd_summary = ihd_ve_future.result()
+                lcm_summary = lungcancer_ve_future.result()
+                
+                # Get summary table and export
+                combine_hia_summaries(acm_summary, ihd_summary, lcm_summary, output_dir, f_out, verbose)
                 
                 # Return that everything is done
                 logging.info('- [HEALTH] All outputs have been exported!')
