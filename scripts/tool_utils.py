@@ -189,7 +189,7 @@ def report_version():
 
     logging.info('╔════════════════════════════════╗')
     logging.info('║ ISRM Health Calculations Tool  ║')
-    logging.info('║ Version 0.8.2                  ║')
+    logging.info('║ Version 0.8.3                  ║')
     logging.info('╚════════════════════════════════╝')
     logging.info('\n')
     return
