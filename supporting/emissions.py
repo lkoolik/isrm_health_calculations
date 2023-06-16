@@ -4,7 +4,7 @@
 Emissions Data Object
 
 @author: libbykoolik
-last modified: 2023-06-07
+last modified: 2023-06-13
 """
 
 # Import Libraries
@@ -26,7 +26,9 @@ class emissions:
     Defines a new object for storing and manipulating emissions data.
     
     INPUTS:
-        - file_path: File path to an emissions file (allows .shp and .feather only)
+        - file_path: File path to an emissions file (allows .shp, .feather, and .csv only)
+        - output_dir: a filepath string for the output directory
+        - f_out: a string containing the filename pattern to be used in output files
         - units: Units of the emissions file (default is ug/s)
         - name: plain English tag for emissions, otherwise will use the filename
         - details_to_keep: any additional aggregation field (e.g., FUEL_TYPE)
@@ -48,7 +50,7 @@ class emissions:
           pollutant
 
     '''
-    def __init__(self, file_path, units='ug/s', name='', details_to_keep=[], filter_dict={}, load_file=True, verbose=False):
+    def __init__(self, file_path, output_dir, f_out, units='ug/s', name='', details_to_keep=[], filter_dict={}, load_file=True, verbose=False):
         ''' Initializes the emissions object'''     
         
         # Initialize path and check that it is valid
@@ -62,6 +64,8 @@ class emissions:
         self.filter_dict = filter_dict
         self.filter = bool(self.filter_dict) # returns False if empty, True if not empty
         self.verbose = verbose
+        self.output_dir = output_dir
+        self.f_out = f_out
 
         # Return a starting statement
         verboseprint(self.verbose, '- [EMISSIONS] Creating a new emissions object from {}'.format(self.file_path))
@@ -176,7 +180,10 @@ class emissions:
         
         elif self.file_type == 'feather':
             geometry, emissions_data, crs = self.load_feather()
-         
+        
+        elif self.file_type == 'csv':
+            geometry, emissions_data, crs = self.load_csv()
+            
         else:
             raise ValueError('Emissions file is of an unknown type. Cannot proceed')
         
@@ -191,6 +198,9 @@ class emissions:
             indexed to spatial information
         
         '''
+        # Add log statements
+        verboseprint(self.verbose, '- [EMISSIONS] Reading emissions from a shapefile.')
+        
         # Shapefiles are read using geopandas
         emissions_gdf = gpd.read_file(self.file_path)
         
@@ -213,6 +223,9 @@ class emissions:
             indexed to spatial information
         
         '''
+        # Add log statements
+        verboseprint(self.verbose, '- [EMISSIONS] Reading emissions from a feather file.')
+        
         # Feathers are read using geopandas
         emissions_gdf = gpd.read_feather(self.file_path)
         
@@ -225,6 +238,50 @@ class emissions:
         crs = emissions_gdf.crs
         
         return geometry, emissions_data, crs
+    
+    def load_csv(self):
+        ''' 
+        Loads emissions data from a csv file.
+        
+        Requirements:
+            - Emissions data must have the columns LAT_WGS84 and LON_WGS84 and
+              five columns of pollutant data
+        
+        '''
+        # Add log statements
+        verboseprint(self.verbose, '- [EMISSIONS] Reading emissions from a CSV file.')
+        
+        # CSVs are read using pandas
+        emissions_df = pd.read_csv(self.file_path, header=9)
+        
+        # Create geopandas geodataframe using lat/lon coordinates
+        emissions_gdf = gpd.GeoDataFrame(emissions_df, 
+                                         geometry = gpd.points_from_xy(emissions_df.LON_WGS84,
+                                                                       emissions_df.LAT_WGS84), 
+                                         crs='EPSG:4326')
+        
+        # Add unique identifiers for I_CELL and J_CELL
+        emissions_gdf['I_CELL'] = np.arange(emissions_gdf.shape[0])
+        emissions_gdf['J_CELL'] = np.arange(emissions_gdf.shape[0])
+        
+        # Remove nans
+        emissions_gdf = emissions_gdf.fillna(0.0)
+        
+        # Split off geometry from emissions data
+        geometry = emissions_gdf[['I_CELL','J_CELL','geometry']]\
+            .copy().drop_duplicates().reset_index(drop=True)
+        emissions_data = pd.DataFrame(emissions_gdf.drop(columns='geometry'))
+        
+        # Separately save the coordinate reference system
+        crs = emissions_gdf.crs
+        
+        # Save a copy of the emissions shapefile 
+        emissions_gdf_out_path = path.join(self.output_dir, 'shapes', self.f_out+'_emissions_input.shp')
+        emissions_gdf.to_file(emissions_gdf_out_path)
+        verboseprint(self.verbose, '- [EMISSIONS] Saved a copy of the emissions input as a shapefile: {}'.format(emissions_gdf_out_path))
+        
+        return geometry, emissions_data, crs
+    
 
     def check_height(self):
         ''' Checks to see if a height column exists, otherwise adds groundlevel height '''

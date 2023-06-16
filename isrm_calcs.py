@@ -4,7 +4,7 @@
 Main Run File
 
 @author: libbykoolik
-Last updated: 2023-06-09
+Last updated: 2023-06-13
 """
 #%% Import useful libraries, supporting objects, and scripts
 # Useful libraries for main script
@@ -113,8 +113,8 @@ if __name__ == "__main__":
     if check:
         try:
             # Default to verbose since this mode is just for checking files
-            emis = emissions(emissions_path, units=units, name=name, load_file=False, verbose=True)
             isrmgrid = isrm(isrm_path, output_region, region_of_interest, load_file=False, verbose=True)
+            emis = emissions(emissions_path, output_dir, f_out, units=units, name=name, load_file=False, verbose=True)
             pop = population(population_path, load_file=False, verbose=True)
             logging.info("\n<< Emissions, ISRM, and population files exist and are able to be imported. >>\n")
             
@@ -152,7 +152,7 @@ if __name__ == "__main__":
         file_reader_pool = concurrent.futures.ThreadPoolExecutor()
         
         # Start reading in files in parallel
-        emis_future = file_reader_pool.submit(emissions, emissions_path, units=units, name=name, load_file=True, verbose=verbose)
+        emis_future = file_reader_pool.submit(emissions, emissions_path, output_dir, f_out, units=units, name=name, load_file=True, verbose=verbose)
         isrm_future = file_reader_pool.submit(isrm, isrm_path, output_region, region_of_interest, load_file=True, verbose=verbose)
         pop_future = file_reader_pool.submit(population, population_path, load_file=True, verbose=verbose)
   

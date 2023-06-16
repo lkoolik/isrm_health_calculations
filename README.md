@@ -3,7 +3,7 @@ A repository of scripts used for converting emissions to concentrations and heal
 
 *Libby Koolik, UC Berkeley*
 
-Last modified June 9, 2023
+Last modified June 13, 2023
 
 ## Table of Contents
 * Purpose and Goals ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#purpose-and-goals))
@@ -259,6 +259,8 @@ The `emissions` object is primarily built off of `geopandas`. It has the followi
 
 *Inputs*
 * `file_path`: the file path of the raw emissions data
+* `output_dir`: a filepath string for the output directory
+* `f_out`: a string containing the filename pattern to be used in output files
 * `units`: units associated with the emissions (e.g., μg/s)
 * `name`: a plain English name tied to the emissions data, either provided or automatically generated from the filepath
 * `details_to_keep`: any additional details to be preserved throughout the processing (e.g., sector, fuel type) (not fully built out yet)
@@ -293,6 +295,7 @@ The `emissions` object is primarily built off of `geopandas`. It has the followi
 * `load_emissions`: detects the filetype of the emissions file and calls the appropriate load function
 * `load_shp`: loads the emissions data from a shapefile
 * `load_feather`: loads the emissions data from a feather file
+* `load_csv`: loads the emissions data from a csv file
 * `check_height`: checks that the height column is present in the emissions file; if not, assumes emissions are released at ground-level
 * `check_emissions`: runs a number of checks on the emissions data to ensure data are valid before running anything
 * `map_pollutant_names`: replaces pollutant names if they are not found in the emissions data based on near-misses (e.g., PM2.5 for PM25)
@@ -789,4 +792,17 @@ The `tool_utils` library contains a handful of scripts that are useful for code 
 
 ## Running the Tool
 
-The tool is configured to be run on a [Mac](https://lkoolik.github.io/isrm_tool/) or via Linux terminal on the [Google Cloud or Windows Subsystem for Linux](https://docs.google.com/document/d/1aurYIaGMi6BCvQaK6cEyrb5amSAX8TXTYiB2ko2N8FU/). Instructions for each of those are linked in the previous sentence.
+The tool is configured to be run on a [Mac](https://lkoolik.github.io/isrm_tool/) or via Linux terminal (including Windows Subsystem for Linux) on the [Google Cloud or Windows Subsystem for Linux](https://docs.google.com/document/d/1aurYIaGMi6BCvQaK6cEyrb5amSAX8TXTYiB2ko2N8FU/). Instructions for each of those are linked in the previous sentence.
+
+----
+
+## Acknowledgments
+
+In alphabetical order, the following people are acknowledged for their support and contributions:
+* Dr. Álvaro Alvarado (OEHHA): advisor to development
+* Dr. Joshua Apte (UC Berkeley): project PI
+* Amy Budahn (OEHHA, now CARB): advisor to development
+* Thomas Le (UC Berkeley): investigated pipelines for regulatory data
+* Dr. Julian Marshall (UW): advisor to development
+* Dr. Laurel Plummer (OEHHA): advisor to development
+* Justin Ward (Google): supported parallelization of main program
