@@ -31,6 +31,7 @@ class isrm:
         - output_region: a geodataframe of the region for results to be output, 
           as calculated by get_output_region in tool_utils.py
         - region_of_interest: the name of the region contained in the output_region
+        - run_parallel: a Boolean indicating whether or not to run in parallel
         - load_file: a Boolean indicating whether or not the file should be 
           loaded (for debugging)
         - verbose: a Boolean indicating whether or not detailed logging statements 
@@ -48,7 +49,7 @@ class isrm:
         - map_isrm: simple function for mapping the ISRM grid cells
     
     '''
-    def __init__(self, isrm_path, output_region, region_of_interest, load_file=True, verbose=False):
+    def __init__(self, isrm_path, output_region, region_of_interest, run_parallel, load_file=True, verbose=False):
         ''' Initializes the ISRM object'''        
         
         # Initialize paths and check that they are valid
@@ -57,6 +58,7 @@ class isrm:
         self.nh3_path, self.nox_path, self.pm25_path, self.sox_path, self.voc_path, self.geo_file_path = self.get_isrm_files()
         self.output_region = output_region
         self.region_of_interest = region_of_interest
+        self.run_parallel = run_parallel
         self.valid_file, self.valid_geo_file = self.check_path()
         
         # Grab other meta-parameters
@@ -78,18 +80,25 @@ class isrm:
         
         # Read ISRM data and geographic information
         if self.valid_file == True and self.load_file == True and self.valid_geo_file == True:
-            # Import the geographic data for the ISRM
             verboseprint(self.verbose, '- [ISRM] Beginning to import ISRM geographic data. This step may take some time.')            
-            executor = concurrent.futures.ThreadPoolExecutor()
-            geodata_future = executor.submit(self.load_geodata)
+            
+            # If parallel, start getting the geodata in the executor
+            if run_parallel:
+                # Import the geographic data for the ISRM
+                executor = concurrent.futures.ThreadPoolExecutor()
+                geodata_future = executor.submit(self.load_geodata)
 
-            # Import numeric ISRM layers while the geodata file is also loading
-            verboseprint(self.verbose, '- [ISRM] Beginning to import ISRM data. This step may take some time.')
+            # Import numeric ISRM layers - if running in parallel, this will occur 
+            # while the geodata file is also loading. 
             self.PM25, self.NH3, self.NOX, self.SOX, self.VOC = self.load_isrm()
             verboseprint(self.verbose, '- [ISRM] ISRM data imported. Five pollutant variables created')
 
-            # Come back to the geodata
-            self.geodata = geodata_future.result()
+            # Finalize the geodata
+            if run_parallel:
+                self.geodata = geodata_future.result()
+                
+            else:
+                self.geodata = self.load_geodata()
             verboseprint(self.verbose, '- [ISRM] ISRM geographic data imported.')
             
             # Pull a few relevant layers
