@@ -358,7 +358,7 @@ def plot_percentile_exposure(output_dir, f_out, exposure_pctl, verbose):
     
     return fname
 
-def export_exposure(exposure_gdf, exposure_disparity, exposure_pctl, shape_out, output_dir, f_out, verbose):
+def export_exposure(exposure_gdf, exposure_disparity, exposure_pctl, shape_out, output_dir, f_out, verbose, run_parallel):
     ''' 
     Calls each of the exposure output functions in parallel
     
@@ -374,6 +374,7 @@ def export_exposure(exposure_gdf, exposure_disparity, exposure_pctl, shape_out, 
         - f_out: the name of the file output category (will append additional information)
         - verbose: a Boolean indicating whether or not detailed logging statements should be 
           printed 
+        - run_parallel: a Boolean indicating whether or not to run in parallel
         
     OUTPUTS:
         - None
@@ -383,18 +384,25 @@ def export_exposure(exposure_gdf, exposure_disparity, exposure_pctl, shape_out, 
     # Return a log statements
     logging.info('- [EJ] Exporting exposure outputs.')
 
-    # Call export functions in parallel
-    with concurrent.futures.ProcessPoolExecutor(max_workers=5) as ej_executor:
-        
-        # Submit each export function to the executor
-        gdf_export_future = ej_executor.submit(export_exposure_gdf, exposure_gdf, shape_out, f_out)
-        csv_export_future = ej_executor.submit(export_exposure_csv, exposure_gdf, output_dir, f_out)
-        disp_export_future = ej_executor.submit(export_exposure_disparity, exposure_disparity, output_dir, f_out)
-        plot_export_future = ej_executor.submit(plot_percentile_exposure, output_dir, f_out, exposure_pctl, verbose)
-        
-        # Wait for all to finish
-        (tmp, tmp, tmp, tmp) = (gdf_export_future.result(), csv_export_future.result(),
-                                disp_export_future.result(), plot_export_future.result())
+    if run_parallel:
+        # Call export functions in parallel
+        with concurrent.futures.ProcessPoolExecutor(max_workers=5) as ej_executor:
+            
+            # Submit each export function to the executor
+            gdf_export_future = ej_executor.submit(export_exposure_gdf, exposure_gdf, shape_out, f_out)
+            csv_export_future = ej_executor.submit(export_exposure_csv, exposure_gdf, output_dir, f_out)
+            disp_export_future = ej_executor.submit(export_exposure_disparity, exposure_disparity, output_dir, f_out)
+            plot_export_future = ej_executor.submit(plot_percentile_exposure, output_dir, f_out, exposure_pctl, verbose)
+            
+            # Wait for all to finish
+            (tmp, tmp, tmp, tmp) = (gdf_export_future.result(), csv_export_future.result(),
+                                    disp_export_future.result(), plot_export_future.result())
+    else:
+        # Call export functions linearly
+        export_exposure_gdf(exposure_gdf, shape_out, f_out)
+        export_exposure_csv(exposure_gdf, output_dir, f_out)
+        export_exposure_disparity(exposure_disparity, output_dir, f_out)
+        plot_percentile_exposure(output_dir, f_out, exposure_pctl, verbose)
     
     logging.info('- [EJ] All exposure outputs have been saved.')
 

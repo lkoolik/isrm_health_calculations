@@ -38,6 +38,7 @@ class concentration:
         - isrm_obj: the ISRM object, as defined by isrm.py
         - detailed_conc_flag: a Boolean indicating whether concentrations should be output
           at a detailed level or not
+        - run_parallel: a Boolean indicating whether or not to run in parallel
         
     CALCULATES:
         - detailed_conc: geodataframe of the detailed concentrations at ground-level 
@@ -54,7 +55,7 @@ class concentration:
           directory of choice
 
     '''
-    def __init__(self, emis_obj, isrm_obj, detailed_conc_flag, run_calcs=True, verbose=False):
+    def __init__(self, emis_obj, isrm_obj, detailed_conc_flag, run_parallel, run_calcs=True, verbose=False):
         ''' Initializes the Concentration object'''        
         
         # Initialize concentration object by reading in the emissions and isrm 
@@ -63,6 +64,7 @@ class concentration:
         
         # Get a few other metadata
         self.detailed_conc_flag = detailed_conc_flag
+        self.run_parallel = run_parallel
         self.isrm_id = self.isrm.ISRM_ID
         self.isrm_geom = self.isrm.geometry
         self.crs = self.isrm.crs
@@ -87,7 +89,7 @@ class concentration:
     def run_layer(self, layer):
         ''' Estimates concentratiton for a single layer '''
         # Creates a concentration_layer object for the given layer
-        conc_layer = concentration_layer(self.emissions, self.isrm, layer, run_calcs=True, verbose=self.verbose)
+        conc_layer = concentration_layer(self.emissions, self.isrm, layer, self.run_parallel, run_calcs=True, verbose=self.verbose)
         
         # Copies out just the detailed_conc object and adds the LAYER column
         detailed_conc_layer = conc_layer.detailed_conc.copy()

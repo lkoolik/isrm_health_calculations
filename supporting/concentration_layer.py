@@ -35,6 +35,7 @@ class concentration_layer:
         - emis_obj: an emissions object
         - isrm_obj: an ISRM object
         - layer: the vertical layer of the ISRM grid to use
+        - run_parallel: a Boolean indicating whether or not to run in parallel
         - run_calcs: whether calculations should be run or just checked
         - verbose: whether the tool should return more logging statements
         
@@ -47,7 +48,7 @@ class concentration_layer:
           contribution to the total ground-level PM2.5 concentrations
         
     '''
-    def __init__(self, emis_obj, isrm_obj, layer, run_calcs=True, verbose=False):
+    def __init__(self, emis_obj, isrm_obj, layer, run_parallel, run_calcs=True, verbose=False):
         ''' Initializes the Concentration object'''        
         # Initialize concentration object by reading in the emissions and isrm 
         self.emissions = emis_obj
@@ -55,6 +56,7 @@ class concentration_layer:
         
         # Get a few other metadata
         self.layer = layer
+        self.run_parallel = run_parallel
         self.isrm_id = self.isrm.ISRM_ID
         self.receptor_id = self.isrm.receptor_IDs
         self.isrm_geom = self.isrm.geometry
@@ -169,26 +171,39 @@ class concentration_layer:
         # Set up a dictionary for more intuitive storage
         tmp_dct = {}
         
-        # Iterate through each pollutant
-        with concurrent.futures.ProcessPoolExecutor(max_workers=5) as cl_executor:
-            futures = {}
+        # Estimate results for each pollutant
+        if self.run_parallel: # In parallel
+            with concurrent.futures.ProcessPoolExecutor(max_workers=5) as cl_executor:
+                futures = {}
+                for pollutant in pollutants:
+                    # Grab the pollutant layer (e.g., PM25)
+                    emis_slice = emis.get_pollutant_layer(pollutant)
+    
+                    # Cut the pollutant layer based on the height
+                    emis_slice = emis_slice[(emis_slice['HEIGHT_M']>=height_min) & (emis_slice['HEIGHT_M']<height_max)]
+    
+                    # verboseprint(self.verbose, f'- Estimating concentrations of PM2.5 from {pollutant}')
+                    futures[pollutant] = cl_executor.submit(self.allocate_emissions, emis_slice, isrm_obj.geodata, pollutant, verbose)
+                    
+                verboseprint(verbose, '- [CONCENTRATION] Waiting for all allocations to complete')
+                concurrent.futures.wait(futures.values()) # Waits for all calculations to finish
+                verboseprint(verbose, '- [CONCENTRATION] All allocations complete.')
+                
+                # Creates a dict of the values
+                tmp_dct = {x: futures[x].result() for x in pollutants}
+                
+        else: # If linear, loop through pollutants
+        
             for pollutant in pollutants:
                 # Grab the pollutant layer (e.g., PM25)
                 emis_slice = emis.get_pollutant_layer(pollutant)
-
+                
                 # Cut the pollutant layer based on the height
                 emis_slice = emis_slice[(emis_slice['HEIGHT_M']>=height_min) & (emis_slice['HEIGHT_M']<height_max)]
-
-                # verboseprint(self.verbose, f'- Estimating concentrations of PM2.5 from {pollutant}')
-                futures[pollutant] = cl_executor.submit(self.allocate_emissions, emis_slice, isrm_obj.geodata, pollutant, verbose)
                 
-            verboseprint(verbose, '- [CONCENTRATION] Waiting for all allocations to complete')
-            concurrent.futures.wait(futures.values()) # Waits for all calculations to finish
-            verboseprint(verbose, '- [CONCENTRATION] All allocations complete.')
+                tmp_dct[pollutant] = self.allocate_emissions(emis_slice, isrm_obj.geodata, 
+                                                             pollutant, verbose)
             
-            # Creates a dict of the values
-            tmp_dct = {x: futures[x].result() for x in pollutants}
-        
         return tmp_dct['PM25'], tmp_dct['NH3'], tmp_dct['VOC'], tmp_dct['NOX'], tmp_dct['SOX']
     
     def get_concentration(self, pol_emis, pol_isrm, layer):
