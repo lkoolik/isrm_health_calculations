@@ -3,7 +3,13 @@ A repository of scripts used for converting emissions to concentrations and heal
 
 *Libby Koolik, UC Berkeley*
 
-Last modified June 13, 2023
+Last modified July 11, 2023
+
+----
+
+** Note: this version of the code is archival. The model has been renamed to ECHO-AIR and moved to a new home. For more information, please visit [https://echo-air-model.github.io](https://echo-air-model.github.io). **
+
+----
 
 ## Table of Contents
 * Purpose and Goals ([*](https://github.com/lkoolik/isrm_health_calculations/blob/main/README.md#purpose-and-goals))
