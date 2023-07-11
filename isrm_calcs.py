@@ -241,7 +241,7 @@ if __name__ == "__main__":
         exposure_gdf, exposure_pctl, exposure_disparity = run_exposure_calcs(conc, exp_pop_alloc, verbose)    
         
         if output_exposure: # Perform all exports in parallel
-            export_exposure(exposure_gdf, exposure_disparity, exposure_pctl, shape_out, output_dir, f_out, verbose)
+            export_exposure(exposure_gdf, exposure_disparity, exposure_pctl, shape_out, output_dir, f_out, verbose, run_parallel)
             
         else: # Just export the EJ figure
             plot_percentile_exposure(output_dir, f_out, exposure_pctl, verbose)
